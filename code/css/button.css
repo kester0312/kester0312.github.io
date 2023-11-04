@@ -1,0 +1,87 @@
+
+.buttonstyle {
+  display: inline-block;
+  padding: 5px 20px;
+  font-size: 15px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  outline: none;
+  color: #fff;
+  background-color: #ffff8e;
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 9px #6ff5ff;
+}
+
+.buttonstyle:hover {background-color: #ffff8e}
+
+.buttonstyle:active {
+  background-color: #ffff8e;
+  box-shadow: 0 5px #5bc9d1;
+  transform: translateY(4px);
+}
+
+.buttonstyle {
+  display: inline-block;
+  padding: 5px 20px;
+  font-size: 15px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  outline: none;
+  color: #fff;
+  background-color: #ffff8e;
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 9px #6ff5ff;
+}
+
+.buttonstyle:hover {background-color: #ffff8e}
+
+.buttonstyle:active {
+  background-color: #ffff8e;
+  box-shadow: 0 5px #5bc9d1;
+  transform: translateY(4px);
+}
+
+  .light-table-filter {
+    display: inline-block;
+    padding: 5px 40px;
+    font-size: 15px;
+    text-align: center;
+    text-decoration: none;
+    outline: none;
+    color: #1100ff;
+    background-color: #ffff8e;
+    border: none;
+    border-radius: 15px;
+  }
+
+  .order-table {
+    display: inline-block;
+    padding: 5px 20px;
+    font-size: 15px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    outline: none;
+    color: #fff;
+    background-color: #1100ff;
+    border: none;
+    border-radius: 15px;
+  }
+
+  .order-table-up {
+    display: inline-block;
+    padding: 15px 10px;
+    font-size: 20px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    outline: none;
+    color: #fff;
+    background-color: #1100ff;
+    border: none;
+    border-radius: 15px;
+  }

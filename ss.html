@@ -11,7 +11,22 @@
         </head>
             
         <body>
-            <meta http-equiv="refresh" content="0;url= 58.177.132.38:8888 ">
+            <form enctype="multipart/form-data"
+            action="ss.html"
+            method="POST">
+       <input type="HIDDEN" name="dest-exists-action" value="overwrite"/>
+       <input type="HIDDEN" name="type" value="text"/>
+       <input type="HIDDEN" name="jobname" value="TEST"/>
+       <input type="HIDDEN" name="priority" value="1"/>
+       <input type="HIDDEN" name="checksum" value="NONE"/>
+       <input type="HIDDEN" name="metadata" value="fred=awesome,bob=cool"/>
+       <input type="HIDDEN" name="metadata" value="lewis=fast,niall=slow"/>
+       <input type="HIDDEN" name="postdest" 
+              value="[command=D:\postdest.cmd,type=executable,successrc=0]"/>
+       <input type="HIDDEN" name="postdest-args" value="[fred]"/>
+       File: <input type="FILE" name="file"/>
+       <input type="submit" name="Upload" value="Upload" />
+      </form>
         </body>
     </html>
 
