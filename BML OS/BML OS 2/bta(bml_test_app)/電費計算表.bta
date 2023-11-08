@@ -1,0 +1,75 @@
+#BTA-API:1.0
+{name:[APItest]},#名字不可以一樣
+{author:[BML]},#名字不可以一樣
+{description:[APItesting]},#名字不可以一樣
+{uuid:[40c53d00-e982-486c-aaae-f4df3ac1ec4f]},
+{code:[
+    <!DOCTYPE html>
+#kester0312.github.io
+
+
+<html>
+
+    <head>
+        <link rel="shortcut icon" href="favicon.ico" />
+        <link rel="bookmark" href="favicon.ico" />
+        <meta charset="UTF-8"/>
+        <title>麥塊藍月光</title>
+    </head>
+
+        
+    <body>
+
+
+  
+  
+        <div>
+            <header style="background-color:rgb(0, 213, 255);position:fixed;left:-10px;top:0px;width:101%;overflow:hidden;height:70px">
+                <a href="index.html" title="麥塊藍月光"><img style="float:left;position:relative;left:10px;" height="75" src="icon.png" border="0"></a>
+
+            </header>
+        </div>
+
+        <br></br>
+        <br></br>
+        
+        <div>
+            <header style="background-color:rgb(235, 196, 0);color: rgb(255, 255, 0);" align="center";>
+                <h1>網站:</h1>
+                <h2>藍月光鐵路(光鐵)</h2>
+                <a href="./藍月光鐵路/index.html" title="藍月光鐵路(光鐵)"><img src="藍月光鐵路/icon_text.png" height="300" border="0"></a>
+                <h2>minecraft伺服器</h2>
+                <a href="ddns/index.html" title="minecraft伺服器"><img src="./ddns/photos/4.png" height="300" border="0"></a>     
+                <h2>舊版網站+舊版藍月光網站鐵路</h2>
+                <a href="./藍月光鐵路/old/index.html" title="BML OS"><img src="BML OS/icon.png" height="300" border="0"></a>
+            </header>
+        </div>
+
+
+
+
+
+
+
+
+
+
+        
+
+    <h5 align="center";>@藍月光鐵路 2023</h5>
+    </body>
+
+
+
+
+
+
+
+
+
+          
+    </body>
+</html>
+
+
+]}

@@ -1,0 +1,8 @@
+#BTA-API:1.0
+{name:[APItest]},#名字不可以一樣
+{author:[BML]},#名字不可以一樣
+{description:[APItesting]},#名字不可以一樣
+{uuid:[ed108e44-16f3-4296-885e-5b2acf375446]},
+{code:[
+    <h1>BTA,(bml test app)-API</h1>
+]}

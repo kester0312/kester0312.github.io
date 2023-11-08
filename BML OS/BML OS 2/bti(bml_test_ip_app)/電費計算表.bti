@@ -1,0 +1,6 @@
+#BTA-API:1.0
+{name:[APItest]},#名字不可以一樣
+{author:[BML]},#名字不可以一樣
+{description:[APItesting]},#名字不可以一樣
+{uuid:[b93677a4-d54e-4c4f-a100-1d8d8242568a]},
+{website:[https://kester0312.github.io/BML%20OS/index.html]}
