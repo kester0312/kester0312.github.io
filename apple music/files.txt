@@ -1,0 +1,31 @@
+{
+    "verison": {
+        "alpha 2.0"
+    },
+    "1": {
+        "00:00:01" : "剛滿18歲~~~",
+        "00:00:05" : "你跟我比大家",
+        "00:00:07" : "還想跟我比利茶",
+        "00:00:09" : "請立刻給我跑!",
+        "00:00:11" : "我失望的比你絲滑",
+        "00:00:13" : "扣死獵人的主題",
+        "00:00:15" : "此時狡猾的狐狸!~"
+    }
+}
+
+{
+    "key1": {
+        "name": "Name1",
+        "model": "mtrsteamloco:eyecandies/model1.obj"
+    },
+    "key2": {
+        "name": "Name2",
+        "model": "mtrsteamloco:eyecandies/model2.obj",
+        "textureId": "mtrsteamloco:textures/eyecandies/foobar.png",
+        "flipV": true,
+        "translation": [ 0, 0, 0 ],
+        "rotation": [ 0, 0, 0 ],
+        "scale": [ 1, 1, 1 ],
+        "mirror": [ false, false, false ]
+    }
+}
