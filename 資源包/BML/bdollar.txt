@@ -1,0 +1,3 @@
+
+1 dollar
+/give kester0312 minecraft:recovery_compass{CustomModelData:1,display:{Name:'[{"text":"藍月光幣(1元)","italic":false,"color":"yellow"}]'}}

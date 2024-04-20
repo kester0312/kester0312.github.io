@@ -1,0 +1,13 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/knowledge_book"
+  },
+	"overrides" :[
+		{"predicate":{"custom_model_data":1},"model":"item/1b_dollar"},
+    {"predicate":{"custom_model_data":5},"model":"item/5b_dollar"},
+    {"predicate":{"custom_model_data":10},"model":"item/10b_dollar"},
+    {"predicate":{"custom_model_data":50},"model":"item/50b_dollar"},
+    {"predicate":{"custom_model_data":100},"model":"item/100b_dollar"}
+	]
+}
