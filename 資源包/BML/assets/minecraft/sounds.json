@@ -1,0 +1,30 @@
+{
+	"321": {
+		"sounds": [
+			{
+				"name": "minecraft:321"
+			}
+		]
+	},
+	"go": {
+		"sounds": [
+			{
+				"name": "minecraft:go"
+			}
+		]
+	},
+	"round_win": {
+		"sounds": [
+			{
+				"name": "minecraft:round_win"
+			}
+		]
+	},
+	"win": {
+		"sounds": [
+			{
+				"name": "minecraft:win"
+			}
+		]
+	}
+}
