@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-#kester0312.github.io
+<!DOCTYPE html kester0312.github.io>
 
 
 <html>
@@ -9,6 +8,7 @@
         <link rel="bookmark" href="favicon.ico" />
         <meta charset="UTF-8"/>
         <title>麥塊藍月光</title>
+        <link rel="stylesheet" href="./code/css/button.css">
     </head>
 
         
@@ -36,10 +36,40 @@
                 <a href="ddns/index.html" title="minecraft伺服器"><img src="./ddns/photos/4.png" height="300" border="0"></a>     
                 <h2>舊版網站+舊版藍月光網站鐵路</h2>
                 <a href="./藍月光鐵路/old/index.html" title="BML OS"><img src="BML OS/icon.png" height="300" border="0"></a>
-                <a href="./Server Online Test/index.html" title="價錢計算器"><h2>伺服器在線檢查器</h2></a>
+                <a href="./Server Online Test/index.html" title="價錢計算器"><h2><img src="Server Online Test/Server Online Test.png" height="50" border="0"></h2></a>
+                <a href="./Skin/face.png" title="face"><font size="50">Pixel=8:</font><img src="Skin/face.png" height="200" border="0"></h2>
+                <a href="./Skin/512_face.png" title="512_face"><font size="50">Pixel=512:</font><img src="Skin/512_face.png" height="200" border="0"></h2>
+                <a href="./Skin/skin.png" title="skin"><img src="Skin/skin.png" height="200" border="0"></h2>
                 <a href="./calculator/3D打印價錢計算器/index.html" title="價錢計算器"><h2>3D打印價錢計算器</h2></a>
                 <a href="./calculator/電費計算器/index.html" title="電費計算器"><h2>電費計算器</h2></a>
             </header>
+        </div>
+
+        <div>
+            <script>
+            function Num1()
+            {
+                document.getElementById("ans").value=Math.random()
+            }
+
+            function Num2()
+            {
+                document.getElementById("ans").value=Math.ceil(Math.random()*10)
+            }
+
+            function Num3()
+            {
+                document.getElementById("ans").value=Math.random(1-6)
+            }
+            //</script>
+            <h1 style="background-color:rgb(0, 213, 255);" align="center">
+            <button class="buttonstyle" type="button" id="add" onclick="Num1()"><h7 style="color: rgb(0, 60, 255);">隨機數0.0-1.0</h7></button> 
+            <button class="buttonstyle" type="button" id="add" onclick="Num2()"><h7 style="color: rgb(0, 60, 255);">隨機數1-10</h7></button> 
+            <input type="text" id="ans">
+            <br></br>
+
+
+            </h1>
         </div>
 
 
