@@ -1,0 +1,49 @@
+{
+  "geometry":"skinpacks/skins.json",
+  "serialize_name": "Bluemoonlight Skin Pack",
+  "localization_name": "bluemoonlight-skin",
+  "skins": [
+    {
+      "localization_name": "old_skin",
+      "geometry": "geometry.bluemoonlightskin.old_skin",
+      "texture": "old_skin.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "skin",
+      "geometry": "geometry.bluemoonlightskin.skin",
+      "texture": "skin.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "15th_anniversary__skin",
+      "geometry": "geometry.15th_anniversary__skin.15th_anniversary__skin",
+      "texture": "15th_anniversary__skin.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "mcc_15th_year__skin",
+      "geometry": "geometry.bluemoonlightskin.mcc_15th_year__skin",
+      "texture": "mcc_15th_year__skin.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "cherry_blossom__skin",
+      "geometry": "geometry.bluemoonlightskin.cherry_blossom__skin",
+      "texture": "cherry_blossom__skin.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "purple_heart__skin",
+      "geometry": "geometry.bluemoonlightskin.purple_heart__skin",
+      "texture": "purple_heart__skin.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "follower's_skin",
+      "geometry": "geometry.bluemoonlightskin.follower's_skin",
+      "texture": "follower's_skin.png",
+      "type": "free"
+    }
+  ]
+}

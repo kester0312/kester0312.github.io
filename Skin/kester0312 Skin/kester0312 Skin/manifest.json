@@ -1,0 +1,24 @@
+{
+  "header": {
+    "name": "bluemoonlight-skin",
+    "description": "",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "uuid": "9fffb89a-1803-4e52-84b2-6260b5550bea"
+  },
+  "modules": [
+    {
+      "version": [
+        1,
+        0,
+        0
+      ],
+      "type": "skin_pack",
+      "uuid": "9d277616-2a6e-430f-b7ee-65917dcdd13e"
+    }
+  ],
+  "format_version": 1
+}
