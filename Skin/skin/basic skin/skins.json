@@ -1,0 +1,19 @@
+{
+  "geometry":"skinpacks/skins.json",
+  "serialize_name": "Bluemoonlight Skin Pack",
+  "localization_name": "bluemoonlight-skin",
+  "skins": [
+    {
+      "localization_name": "old_skin",
+      "geometry": "geometry.bluemoonlightskin.old_skin",
+      "texture": "old_skin.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "skin",
+      "geometry": "geometry.bluemoonlightskin.skin",
+      "texture": "skin.png",
+      "type": "free"
+    }
+  ]
+}
