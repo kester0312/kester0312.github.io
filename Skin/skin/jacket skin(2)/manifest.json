@@ -1,0 +1,24 @@
+{
+  "header": {
+    "name": "bluemoonlight-skin-cape-2",
+    "description": "",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "uuid": "c93061ee-b07e-4e4d-b774-ce3e8b046b09"
+  },
+  "modules": [
+    {
+      "version": [
+        1,
+        0,
+        0
+      ],
+      "type": "skin_pack",
+      "uuid": "ca29b661-d8f8-4d7d-80dc-76c59e47312f"
+    }
+  ],
+  "format_version": 2
+}

@@ -1,0 +1,13 @@
+{
+  "geometry":"skinpacks/skins.json",
+  "serialize_name": "Bluemoonlight Skin Pack",
+  "localization_name": "bluemoonlight-skin-cape-2",
+  "skins": [
+    {
+      "localization_name": "mojang_office__skin",
+      "geometry": "geometry.bluemoonlightskin.mojang_office__skin",
+      "texture": "mojang_office__skin.png",
+      "type": "free"
+    }
+  ]
+}

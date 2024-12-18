@@ -1,6 +1,6 @@
 {
   "header": {
-    "name": "bluemoonlight-skin-cape",
+    "name": "bluemoonlight-skin-cape-1",
     "description": "",
     "version": [
       1,
@@ -20,5 +20,5 @@
       "uuid": "772d70d6-4b1b-4364-a141-d892ad05491c"
     }
   ],
-  "format_version": 1
+  "format_version": 2
 }
