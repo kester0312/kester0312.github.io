@@ -20,66 +20,67 @@
         button {
             font-size: 0.6em; /* 調整按鈕文字大小 */
         }
+        #blockImage {
+            width: 100px;
+            height: 100px;
+        }
     </style>
-
-    <link rel="shortcut icon" href="../../favicon.ico" />
-    <link rel="bookmark" href="../../favicon.ico" />
-    <link rel="stylesheet" href="../../code/css/button.css">
-    <script src="../../code/js/table.js"> </script>
+    <link rel="shortcut icon" href="../../../favicon.ico" />
+    <link rel="bookmark" href="../../../favicon.ico" />
+    <link rel="stylesheet" href="../../../code/css/button.css">
+    <script src="../../../code/js/table.js"> </script>
 </head>
-
-<body>
+<body onload="setDefault()">
     <div>
         <header style="background-color:rgb(0, 213, 255);position:fixed;left:-10px;top:0px;width:101%;overflow:hidden;height:70px">
-          <a href="../../index.html" title="麥塊藍月光"><img style="float:left;position:relative;left:10px;" height="75" src="../../icon.png" border="0"></a>
-          <a href="../index.html" title="藍月光鐵路"><img style="float:left;position:relative;left:20px;" height="70" src="../../藍月光鐵路/icon_text.png" border="0"></a>
-          <a href="https://discord.gg/GGsMq7Kzj7" title="藍月光鐵路DC" target="_blank"><img style="float:left;position:relative;left:30px;" height="70" src="../../藍月光鐵路/discord_logo.png" border="0"></a>
+          <a href="../../index.html" title="麥塊藍月光"><img style="float:left;position:relative;left:10px;" height="75" src="../../../icon.png" border="0"></a>
+          <a href="../index.html" title="藍月光鐵路"><img style="float:left;position:relative;left:20px;" height="70" src="../../../藍月光鐵路/icon_text.png" border="0"></a>
+          <a href="https://discord.gg/GGsMq7Kzj7" title="藍月光鐵路DC" target="_blank"><img style="float:left;position:relative;left:30px;" height="70" src="../../../藍月光鐵路/discord_logo.png" border="0"></a>
         </header>
     </div>
-    <br><br>
-    <br><br>
-
-    <body onload="setDefault()">
-        <div class="inline-container">
-            <input type="text" id="searchShape" placeholder="搜尋方塊" oninput="filterShapes()">
-            <select id="shape" onchange="updateShape()">
-
-                <option value="">方塊</option>
-                <option value="mishanguc:colored_wooden_wall_sign">牆上的染色木板告示牌 - mishanguc:colored_wooden_wall_sign</option>
-                <option value="mishanguc:colored_concrete_wall_sign">牆上的染色混凝土 - mishanguc:colored_concrete_wall_sign</option>
-                <option value="mishanguc:colored_terracotta_wall_sign">牆上的染色陶土 - mishanguc:colored_terracotta_wall_sign</option>
-                <option value="mishanguc:colored_wool">染色羊毛 - mishanguc:colored_wool</option>
-                <option value="mishanguc:colored_terracotta">染色陶土 - mishanguc:colored_terracotta</option>
-
-            </select>
-            <input type="text" id="shapeText" placeholder="自定義方塊" oninput="updateCommand()">
-        </div>
-        <br>
-        <div class="inline-container">
-            <input type="text" id="inputText" placeholder="顏色編號" oninput="syncColorFromText()">
-            <input type="color" id="colorPicker" onchange="updateColor()">
-        </div>
-        <br>
-        <div class="inline-container">
-            <select id="commandTarget" onchange="updateCommand()">
-                <option value="@a">所有玩家(@a)</option>
-                <option value="@e">所有生物(@e)</option>
-                <option value="@p">最接近的玩家(@p)</option>
-                <option value="@r">隨機玩家(@r)</option>
-                <option value="@s" selected>自己(@s)</option>
-            </select>
-        </div>
-        <br>
-        <div class="inline-container">
-            <input type="text" id="copyText" value="/give " placeholder="指令">
-            <button class="buttonstyle" type="button" id="add" style="color: rgb(0, 60, 255);" onclick="copyText()">複製</button>
-        </div>
-        <br>
-        <div class="inline-container">
-            <button class="buttonstyle" type="button" id="add" style="color: rgb(0, 60, 255);" onclick="saveSettings()">儲存</button>
-        </div>
-        <br>
-        <div id="savedSettings" ></div>
+    <br><br><br><br>
+    <div class="inline-container">
+        <input type="text" id="searchShape" placeholder="搜尋方塊" oninput="filterShapes()">
+        <select id="shape" onchange="updateShape()">
+            <option value="">方塊</option>
+            <option value="mishanguc:colored_wooden_wall_sign">牆上的染色木板告示牌 - mishanguc:colored_wooden_wall_sign</option>
+            <option value="mishanguc:colored_concrete_wall_sign">牆上的染色混凝土 - mishanguc:colored_concrete_wall_sign</option>
+            <option value="mishanguc:colored_terracotta_wall_sign">牆上的染色陶土 - mishanguc:colored_terracotta_wall_sign</option>
+            <option value="mishanguc:colored_wool">染色羊毛 - mishanguc:colored_wool</option>
+            <option value="mishanguc:colored_terracotta">染色陶土 - mishanguc:colored_terracotta</option>
+        </select>
+        <input type="text" id="shapeText" placeholder="自定義方塊" oninput="updateCommand()">
+    </div>
+    <br>
+    <div class="inline-container">
+        <input type="text" id="inputText" placeholder="顏色編號" oninput="syncColorFromText()">
+        <input type="color" id="colorPicker" onchange="updateColor()">
+    </div>
+    <br>
+    <div class="inline-container">
+        <img id="blockImage" src="" alt="Block Image">
+    </div>
+    <br>
+    <div class="inline-container">
+        <select id="commandTarget" onchange="updateCommand()">
+            <option value="@a">所有玩家(@a)</option>
+            <option value="@e">所有生物(@e)</option>
+            <option value="@p">最接近的玩家(@p)</option>
+            <option value="@r">隨機玩家(@r)</option>
+            <option value="@s" selected>自己(@s)</option>
+        </select>
+    </div>
+    <br>
+    <div class="inline-container">
+        <input type="text" id="copyText" value="/give " placeholder="指令">
+        <button class="buttonstyle" type="button" id="add" style="color: rgb(0, 60, 255);" onclick="copyText()">複製</button>
+    </div>
+    <br>
+    <div class="inline-container">
+        <button class="buttonstyle" type="button" id="add" style="color: rgb(0, 60, 255);" onclick="saveSettings()">儲存</button>
+    </div>
+    <br>
+    <div id="savedSettings"></div>
 
     <script>
         function setDefault() {
@@ -95,19 +96,20 @@
             var shape = document.getElementById("shape").value;
             var shapeText = shape;
             document.getElementById("shapeText").value = shapeText;
-            updateCommand(); // 更新指令
+            updateCommand();
+            updateImage();
         }
 
         function updateColor() {
             var color = document.getElementById("colorPicker").value;
             document.getElementById("inputText").value = color;
-            updateCommand(); // 更新指令
+            updateCommand();
         }
 
         function syncColorFromText() {
             var colorText = document.getElementById("inputText").value;
             document.getElementById("colorPicker").value = colorText;
-            updateCommand(); // 更新指令
+            updateCommand();
         }
 
         function updateCommand() {
@@ -115,7 +117,6 @@
             var shapeText = document.getElementById("shapeText").value;
             var colorHex = document.getElementById("inputText").value.replace("#", "");
             var colorDec = parseInt(colorHex, 16);
-
             var command = "/give " + commandTarget + " " + shapeText + "{BlockEntityTag:{color:" + colorDec + "}}";
             document.getElementById("copyText").value = command;
         }
@@ -128,7 +129,6 @@
                 var shapeText = document.getElementById("shapeText").value;
                 var colorPicker = document.getElementById("colorPicker").value;
                 var colorText = document.getElementById("inputText").value;
-                
                 var settings = {
                     commandTarget: commandTarget,
                     shape: shape,
@@ -136,7 +136,6 @@
                     colorPicker: colorPicker,
                     colorText: colorText
                 };
-
                 var encodedName = encodeURIComponent(name);
                 document.cookie = encodedName + "=" + encodeURIComponent(JSON.stringify(settings)) + "; path=/";
                 loadSavedSettings();
@@ -153,7 +152,6 @@
                 var name = decodeURIComponent(cookie.substr(0, eqPos));
                 var value = decodeURIComponent(cookie.substr(eqPos + 1));
                 var settings = JSON.parse(value);
-                
                 var useButton = document.createElement("button");
                 useButton.innerHTML = "使用";
                 useButton.onclick = (function(settings) {
@@ -166,7 +164,6 @@
                         updateCommand();
                     };
                 })(settings);
-
                 var deleteButton = document.createElement("button");
                 deleteButton.innerHTML = "刪除";
                 deleteButton.onclick = (function(name) {
@@ -175,7 +172,6 @@
                         loadSavedSettings();
                     };
                 })(name);
-                
                 var text = document.createTextNode(name);
                 savedSettingsDiv.appendChild(useButton);
                 savedSettingsDiv.appendChild(deleteButton);
@@ -184,32 +180,8 @@
             }
         }
 
-
-
         function filterShapes() {
             var searchValue = document.getElementById("searchShape").value.toLowerCase();
             var shapeSelect = document.getElementById("shape");
             var options = shapeSelect.getElementsByTagName("option");
-
-            for (var i = 0; i < options.length; i++) {
-                var option = options[i];
-                var text = option.textContent.toLowerCase();
-                if (text.includes(searchValue)) {
-                    option.style.display = "";
-                } else {
-                    option.style.display = "none";
-                }
-            }
-        }
-
-        function copyText() {
-            var copyText = document.getElementById("copyText");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);  // 選擇範圍
-            document.execCommand("copy");
-            alert("已複製指令");
-        }
-    </script>
-</body>
-</html>
-
+            for (var i = 0; i < options
