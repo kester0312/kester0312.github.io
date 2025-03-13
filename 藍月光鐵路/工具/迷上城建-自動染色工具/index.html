@@ -82,106 +82,168 @@
     <br>
     <div id="savedSettings"></div>
 
-    <script>
-        function setDefault() {
-            var defaultColor = "#000000";
-            document.getElementById("colorPicker").value = defaultColor;
-            document.getElementById("inputText").value = defaultColor;
-            updateShape();
-            updateCommand();
-            loadSavedSettings();
-        }
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>顏色選取器和輸入框</title>
+        <style>
+            body {
+                font-size: 2em;
+            }
+            .inline-container {
+                display: flex;
+                align-items: center;
+            }
+            .inline-container input[type="text"] {
+                margin-left: 10px;
+            }
+            .inline-container select {
+                margin-left: 10px;
+            }
+            button {
+                font-size: 2em; /* 調整按鈕文字大小 */
+            }
+        </style>
+    
+        <link rel="shortcut icon" href="../../favicon.ico" />
+        <link rel="bookmark" href="../../favicon.ico" />
+        <link rel="stylesheet" href="../../code/css/button.css">
+        <script src="../../code/js/table.js"> </script>
+    </head>
 
-        function updateShape() {
-            var shape = document.getElementById("shape").value;
-            var shapeText = shape;
-            document.getElementById("shapeText").value = shapeText;
-            updateCommand();
-            updateImage();
-        }
-
-        function updateColor() {
-            var color = document.getElementById("colorPicker").value;
-            document.getElementById("inputText").value = color;
-            updateCommand();
-        }
-
-        function syncColorFromText() {
-            var colorText = document.getElementById("inputText").value;
-            document.getElementById("colorPicker").value = colorText;
-            updateCommand();
-        }
-
-        function updateCommand() {
-            var commandTarget = document.getElementById("commandTarget").value;
-            var shapeText = document.getElementById("shapeText").value;
-            var colorHex = document.getElementById("inputText").value.replace("#", "");
-            var colorDec = parseInt(colorHex, 16);
-            var command = "/give " + commandTarget + " " + shapeText + "{BlockEntityTag:{color:" + colorDec + "}}";
-            document.getElementById("copyText").value = command;
-        }
-
-        function saveSettings() {
-            var name = prompt("請輸入名稱:");
-            if (name) {
-                var commandTarget = document.getElementById("commandTarget").value;
-                var shape = document.getElementById("shape").value;
-                var shapeText = document.getElementById("shapeText").value;
-                var colorPicker = document.getElementById("colorPicker").value;
-                var colorText = document.getElementById("inputText").value;
-                var settings = {
-                    commandTarget: commandTarget,
-                    shape: shape,
-                    shapeText: shapeText,
-                    colorPicker: colorPicker,
-                    colorText: colorText
-                };
-                var encodedName = encodeURIComponent(name);
-                document.cookie = encodedName + "=" + encodeURIComponent(JSON.stringify(settings)) + "; path=/";
+    
+        <script>
+            function setDefault() {
+                var defaultColor = "#000000";
+                document.getElementById("colorPicker").value = defaultColor;
+                document.getElementById("inputText").value = defaultColor;
+                updateShape();
+                updateCommand();
                 loadSavedSettings();
             }
-        }
-
-        function loadSavedSettings() {
-            var savedSettingsDiv = document.getElementById("savedSettings");
-            savedSettingsDiv.innerHTML = "";
-            var cookies = document.cookie.split("; ");
-            for (var i = 0; i < cookies.length; i++) {
-                var cookie = cookies[i];
-                var eqPos = cookie.indexOf("=");
-                var name = decodeURIComponent(cookie.substr(0, eqPos));
-                var value = decodeURIComponent(cookie.substr(eqPos + 1));
-                var settings = JSON.parse(value);
-                var useButton = document.createElement("button");
-                useButton.innerHTML = "使用";
-                useButton.onclick = (function(settings) {
-                    return function() {
-                        document.getElementById("commandTarget").value = settings.commandTarget;
-                        document.getElementById("shape").value = settings.shape;
-                        document.getElementById("shapeText").value = settings.shapeText;
-                        document.getElementById("colorPicker").value = settings.colorPicker;
-                        document.getElementById("inputText").value = settings.colorText;
-                        updateCommand();
-                    };
-                })(settings);
-                var deleteButton = document.createElement("button");
-                deleteButton.innerHTML = "刪除";
-                deleteButton.onclick = (function(name) {
-                    return function() {
-                        document.cookie = encodeURIComponent(name) + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                        loadSavedSettings();
-                    };
-                })(name);
-                var text = document.createTextNode(name);
-                savedSettingsDiv.appendChild(useButton);
-                savedSettingsDiv.appendChild(deleteButton);
-                savedSettingsDiv.appendChild(text);
-                savedSettingsDiv.appendChild(document.createElement("br"));
+    
+            function updateShape() {
+                var shape = document.getElementById("shape").value;
+                var shapeText = "";
+                if (shape === "wool") {
+                    shapeText = "mishanguc:colored_wool";
+                } else if (shape === "terracotta") {
+                    shapeText = "mishanguc:colored_terracotta";
+                }
+                document.getElementById("shapeText").value = shapeText;
+                updateCommand(); // 更新指令
             }
-        }
-
-        function filterShapes() {
-            var searchValue = document.getElementById("searchShape").value.toLowerCase();
-            var shapeSelect = document.getElementById("shape");
-            var options = shapeSelect.getElementsByTagName("option");
-            for (var i = 0; i < options
+    
+            function updateColor() {
+                var color = document.getElementById("colorPicker").value;
+                document.getElementById("inputText").value = color;
+                updateCommand(); // 更新指令
+            }
+    
+            function syncColorFromText() {
+                var colorText = document.getElementById("inputText").value;
+                document.getElementById("colorPicker").value = colorText;
+                updateCommand(); // 更新指令
+            }
+    
+            function updateCommand() {
+                var commandTarget = document.getElementById("commandTarget").value;
+                var shapeText = document.getElementById("shapeText").value;
+                var colorHex = document.getElementById("inputText").value.replace("#", "");
+                var colorDec = parseInt(colorHex, 16);
+    
+                var command = "/give " + commandTarget + " " + shapeText + "{BlockEntityTag:{color:" + colorDec + "}}";
+                document.getElementById("copyText").value = command;
+            }
+    
+            function saveSettings() {
+                var name = prompt("請輸入名稱:");
+                if (name) {
+                    var commandTarget = document.getElementById("commandTarget").value;
+                    var shape = document.getElementById("shape").value;
+                    var shapeText = document.getElementById("shapeText").value;
+                    var colorPicker = document.getElementById("colorPicker").value;
+                    var colorText = document.getElementById("inputText").value;
+                    
+                    var settings = {
+                        commandTarget: commandTarget,
+                        shape: shape,
+                        shapeText: shapeText,
+                        colorPicker: colorPicker,
+                        colorText: colorText
+                    };
+                    
+                    document.cookie = name + "=" + JSON.stringify(settings) + "; path=/";
+                    loadSavedSettings();
+                }
+            }
+    
+            function loadSavedSettings() {
+                var savedSettingsDiv = document.getElementById("savedSettings");
+                savedSettingsDiv.innerHTML = "";
+                var cookies = document.cookie.split("; ");
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i];
+                    var eqPos = cookie.indexOf("=");
+                    var name = cookie.substr(0, eqPos);
+                    var value = cookie.substr(eqPos + 1);
+                    var settings = JSON.parse(value);
+                    
+                    var useButton = document.createElement("button");
+                    useButton.innerHTML = "使用";
+                    useButton.onclick = (function(settings) {
+                        return function() {
+                            document.getElementById("commandTarget").value = settings.commandTarget;
+                            document.getElementById("shape").value = settings.shape;
+                            document.getElementById("shapeText").value = settings.shapeText;
+                            document.getElementById("colorPicker").value = settings.colorPicker;
+                            document.getElementById("inputText").value = settings.colorText;
+                            updateCommand();
+                        };
+                    })(settings);
+    
+                    var deleteButton = document.createElement("button");
+                    deleteButton.innerHTML = "刪除";
+                    deleteButton.onclick = (function(name) {
+                        return function() {
+                            document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                            loadSavedSettings();
+                        };
+                    })(name);
+                    
+                    var text = document.createTextNode(name);
+                    savedSettingsDiv.appendChild(useButton);
+                    savedSettingsDiv.appendChild(deleteButton);
+                    savedSettingsDiv.appendChild(text);
+                    savedSettingsDiv.appendChild(document.createElement("br"));
+                }
+            }
+    
+            function filterShapes() {
+                var searchValue = document.getElementById("searchShape").value.toLowerCase();
+                var shapeSelect = document.getElementById("shape");
+                var options = shapeSelect.getElementsByTagName("option");
+    
+                for (var i = 0; i < options.length; i++) {
+                    var option = options[i];
+                    var text = option.textContent.toLowerCase();
+                    var value = option.value.toLowerCase();
+                    if (text.includes(searchValue) || value.includes(searchValue)) {
+                        option.style.display = "";
+                    } else {
+                        option.style.display = "none";
+                    }
+                }
+            }
+    
+            function copyText() {
+                var copyText = document.getElementById("copyText");
+                copyText.select();
+                copyText.setSelectionRange(0, 99999);  // 選擇範圍
+                document.execCommand("copy");
+                alert("已複製指令");
+            }
+        </script>
+    </body>
+    </html>
