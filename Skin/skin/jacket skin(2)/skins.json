@@ -8,6 +8,24 @@
       "geometry": "geometry.bluemoonlightskin.mojang_office__skin",
       "texture": "mojang_office__skin.png",
       "type": "free"
+    },
+    {
+      "localization_name": "home__skin",
+      "geometry": "geometry.bluemoonlightskin.home__skin",
+      "texture": "home__skin.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "menace__skin",
+      "geometry": "geometry.bluemoonlightskin.menace__skin",
+      "texture": "menace__skin.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "yearn__skin",
+      "geometry": "geometry.bluemoonlightskin.yearn__skin",
+      "texture": "yearn__skin.png",
+      "type": "free"
     }
   ]
 }
