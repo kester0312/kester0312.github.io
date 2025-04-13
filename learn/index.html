@@ -1,0 +1,117 @@
+<!DOCTYPE html kester0312.github.io>
+
+
+<html>
+
+    <head>
+        <link rel="shortcut icon" href="favicon.ico" />
+        <link rel="bookmark" href="favicon.ico" />
+        <meta charset="UTF-8"/>
+        <title>learn</title>
+    </head>
+
+        
+    <body>
+
+        <script>
+                /*
+                var $1 = prompt("1");
+                var $2 = prompt("2");
+                $1 = parseInt($1)
+                $2 = parseInt($2)
+                document.write("+answer is " + $1+$2);
+                document.write("-answer is " + $1-$2);
+                document.write("*answer is " + $1*$2);
+                document.write("/answer is " + $1/$2);
+                */
+
+                /*
+                var scores = ["1","2","3","4","5"];
+                document.write(scores);
+                document.write("   " + scores[3]);
+                scores[0] = "20";
+                document.write("   " + scores[0]);
+                scores[1] = false;
+                document.write("   " + scores[1]);
+
+                document.write("   " + scores.length);
+                */
+
+                /*
+                function hello(ask,ask2){
+                    
+                    document.write("sdifdriufgkbnkjh   "+ ask + ask2);
+                }
+
+                hello(prompt("1"),prompt("1"));
+                */
+
+                /*
+                function add(a,b){
+                    var a =parseInt(a);
+                    var b = parseInt(b);
+                    //back to add
+                    return a + b;
+
+                }
+
+                document.write(add(prompt("a"),prompt("b")) + "<br/>" + "sacasd");
+                */
+
+                /*
+                var a = 1000;
+                if (a >= 900){
+                    document.write("true");
+                } else {
+                    document.write("false");
+
+                }
+
+                document.write("<br/>" + a)
+                */
+                
+
+                /*
+                var a = {
+                        name:"abc",
+                        age:24,
+                        print_name:function(){
+                            document.write(this.name);
+                        }
+
+                    
+                };
+                a.print_name();
+                var ab = a.age
+                document.write("<br/>" + a.age + "<br/>" + Math.random())
+                */
+
+
+                var password = 123;
+                var password_time = 1;
+                var password_time_limit = 5;
+                var out_limit = false;
+                var input;
+
+                while(password!=input && !out_limit){
+                    password_time++
+                    if(password_time <= password_time_limit){
+
+                        input = prompt("PW?");
+                    } else {
+                        out_limit = true;
+                    }
+                }
+                if(!out_limit){
+
+                    alert("login!")
+                } else{
+                    
+                    alert("wrong password!"+"   "+"out of limit")
+                }
+
+        </script>
+
+    </body>
+</html>
+
