@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Station Sign Generator</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    label { display: block; margin-top: 10px; }
+    input { width: 300px; padding: 5px; margin-top: 5px; }
+    textarea { width: 100%; height: 200px; margin-top: 15px; }
+    button { margin: 5px 5px 0 0; padding: 8px 12px; }
+    .save-entry { margin: 8px 0; border-top: 1px solid #ccc; padding-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Station Sign Generator</h1>
+
+  <form id="stationForm">
+    <label>Direction: <input type="text" name="Direction" required /></label>
+    <label>Station Name: <input type="text" name="StationName" required /></label>
+    <label>POS(X): <input type="text" name="POSX" value="~" required /></label>
+    <label>POS(Y): <input type="text" name="POSY" value="~" required /></label>
+    <label>POS(Z): <input type="text" name="POSZ" value="~" required /></label>
+    <div id="lines"></div>
+    <button type="submit">Generate</button>
+  </form>
+
+  <h2>Generated Code</h2>
+    <textarea id="output"></textarea><br />
+  <button id="copyBtn">Copy to Clipboard</button>
+
+  <h2>Saved Codes Recently (One code only, save as json if in need)</h2>
+  <div id="savesList"></div>
+
+  <script>
+    // Add Line1–Line14 inputs
+    for (let i = 1; i <= 14; i++) {
+      const label = document.createElement("label");
+      label.innerHTML = `Line${i}: <input type="text" name="Line${i}" placeholder="(Optional)" />`;
+      document.getElementById("lines").appendChild(label);
+    }
+
+    // Cookie Helpers
+    function setCookie(name, value, days = 365) {
+      const expires = new Date(Date.now() + days * 864e5).toUTCString();
+      document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + "; expires=" + expires + "; path=/";
+    }
+
+    function getCookie(name) {
+      const cookies = document.cookie.split("; ");
+      for (const pair of cookies) {
+        const [key, val] = pair.split("=");
+        if (key === name) {
+          try {
+            return JSON.parse(decodeURIComponent(val));
+          } catch {
+            return {};
+          }
+        }
+      }
+      return {};
+    }    function updateSavesList() {
+      const saves = getCookie("savedCommands");
+      const container = document.getElementById("savesList");
+      container.innerHTML = "";
+      for (const name in saves) {
+        const entry = saves[name];
+        const div = document.createElement("div");
+        div.className = "save-entry";
+        div.innerHTML = `
+          <strong>${name}</strong><br />
+          <button onclick="loadSave('${name}')">Load</button>
+          <button onclick="deleteSave('${name}')">Delete</button>
+          <button onclick="exportJSON('${name}')">Save as JSON</button>
+        `;
+        container.appendChild(div);
+      }
+    }
+
+    function generateCommand(data) {
+      const get = key => data[key] || "";
+      const lines = Array(15).fill("");
+      for (let i = 1; i <= 14; i++) lines[i] = get("Line" + i);
+
+      return `/setblock ${get("POSX")} ${get("POSY")} ${get("POSZ")} mishanguc:glowing_orange_concrete_hung_sign[axis=x,left=true,right=true,waterlogged=false]{glowing:[],waxed:[],${get("Direction")}:[` +
+      `{color:16777215,offsetX:-5.0f,offsetY:-2.5f,offsetZ:0.01f,size:3.0f,text:"${lines[1]}"},` +
+      `{color:16777215,offsetX:-5.0f,offsetY:0.5f,offsetZ:0.01f,size:3.0f,text:"${lines[8]}"},` +
+      `{color:16777215,offsetX:-3.0f,offsetY:-0.5f,offsetZ:0.01f,scaleX:0.5f,scaleY:1.25f,size:10.0f,text:"|"},` +
+      `{color:16777215,offsetX:-1.0f,offsetY:-2.5f,offsetZ:0.01f,size:3.0f,text:"${lines[2]}"},` +
+      `{color:16777215,offsetX:-1.0f,offsetY:0.5f,offsetZ:0.01f,size:3.0f,text:"${lines[9]}"},` +
+      `{color:16777215,offsetX:1.0f,offsetY:-0.5f,offsetZ:0.01f,scaleX:0.5f,scaleY:1.25f,size:10.0f,text:"|"},` +
+      `{color:16777215,offsetX:3.0f,offsetY:-2.5f,offsetZ:0.01f,size:3.0f,text:"${lines[3]}"},` +
+      `{color:16777215,offsetX:3.0f,offsetY:0.5f,offsetZ:0.01f,size:3.0f,text:"${lines[10]}"},` +
+      `{color:16777215,offsetX:5.0f,offsetY:-0.5f,offsetZ:0.01f,scaleX:0.5f,scaleY:1.25f,size:10.0f,text:"|"},` +
+      `{color:16777215,offsetX:7.0f,offsetY:-2.5f,offsetZ:0.01f,size:3.0f,text:"${lines[4]}"},` +
+      `{color:16777215,offsetX:7.0f,offsetY:0.5f,offsetZ:0.01f,size:3.0f,text:"${lines[11]}"},` +
+      `{color:16777215,offsetX:9.0f,offsetY:-0.5f,offsetZ:0.01f,scaleX:0.5f,scaleY:1.25f,size:10.0f,text:"|"},` +
+      `{color:16777215,offsetX:11.0f,offsetY:-2.5f,offsetZ:0.01f,size:3.0f,text:"${lines[5]}"},` +
+      `{color:16777215,offsetX:11.0f,offsetY:0.5f,offsetZ:0.01f,size:3.0f,text:"${lines[12]}"},` +
+      `{color:16777215,offsetX:13.0f,offsetY:-0.5f,offsetZ:0.01f,scaleX:0.5f,scaleY:1.25f,size:10.0f,text:"|"},` +
+      `{color:16777215,offsetX:15.0f,offsetY:-2.5f,offsetZ:0.01f,size:3.0f,text:"${lines[6]}"},` +
+      `{color:16777215,offsetX:15.0f,offsetY:0.5f,offsetZ:0.01f,size:3.0f,text:"${lines[13]}"},` +
+      `{color:16777215,offsetX:17.0f,offsetY:-0.5f,offsetZ:0.01f,scaleX:0.5f,scaleY:1.25f,size:10.0f,text:"|"},` +
+      `{color:16777215,offsetX:19.0f,offsetY:-2.5f,offsetZ:0.01f,size:3.0f,text:"${lines[7]}"},` +
+      `{color:16777215,offsetX:19.0f,offsetY:0.5f,offsetZ:0.01f,size:3.0f,text:"${lines[14]}"},` +      
+      `{color:16777215,offsetX:21.0f,offsetY:-0.5f,offsetZ:0.01f,scaleX:0.5f,scaleY:1.25f,size:10.0f,text:"|"},` +
+      `{color:16777215,offsetX:23.5f,offsetY:-1.0f,offsetZ:0.01f,scaleX:49.0f,scaleY:0.1f,size:10.0f,text:"|"},` +
+      `{color:0,offsetX:23.5f,offsetY:-0.5f,scaleX:49.0f,scaleY:1.25f,size:10.0f,text:"|"},` +
+      `{color:16777215,offsetX:8.0f,offsetY:3.0f,size:3.0f,text:"${get("StationName")}"}]}`;
+    }
+
+    document.getElementById("stationForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const data = {};
+      formData.forEach((val, key) => data[key] = val);
+
+      const command = generateCommand(data);
+      document.getElementById("output").value = command;
+
+      const saveName = prompt("Name this save:");
+      if (!saveName) return;
+
+      const saves = getCookie("savedCommands");
+      saves[saveName] = { data, command };
+      setCookie("savedCommands", saves);
+      updateSavesList();
+      alert("Saved as \"" + saveName + "\"!");
+    });
+
+    document.getElementById("copyBtn").addEventListener("click", () => {
+      const textarea = document.getElementById("output");
+      textarea.select();
+      document.execCommand("copy");
+      alert("Copied to clipboard!");
+    });
+
+    window.loadSave = function (name) {
+      const entry = getCookie("savedCommands")[name];
+      if (!entry || !entry.data) return alert("Save not found or invalid format.");
+
+      const data = entry.data;
+      const form = document.getElementById("stationForm");
+
+      for (const key in data) {
+        const input = form.querySelector(`[name='${key}']`);
+        if (input) input.value = data[key];
+      }
+
+      const command = generateCommand(data);
+      document.getElementById("output").value = command;
+    };    window.deleteSave = function (name) {
+      const saves = getCookie("savedCommands");
+      delete saves[name];
+      setCookie("savedCommands", saves);
+      updateSavesList();
+      alert("Deleted \"" + name + "\"");
+    };
+
+    window.exportJSON = function (name) {
+      const saves = getCookie("savedCommands");
+      const save = saves[name];
+      if (!save) return alert("That save doesn’t exist.");
+
+      const blob = new Blob([JSON.stringify(save, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name + ".json";
+      a.click();
+    };
+
+    // Initialize UI on page load
+    updateSavesList();
+  </script>
+</body>
+</html>
