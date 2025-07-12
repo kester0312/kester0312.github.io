@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Wiki Page</title>
+</head>
+<body>
+  <h1 id="title">Loading...</h1>
+
+  <script>
+    fetch('inf.json')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('title').textContent = data.Title || "Title not found";
+      })
+      .catch(error => {
+        console.error('Error fetching JSON:', error);
+        document.getElementById('title').textContent = "Error loading file";
+      });
+  </script>
+</body>
+</html>
