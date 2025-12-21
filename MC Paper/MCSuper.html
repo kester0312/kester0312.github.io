@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MC Answer Formatter with Ordering</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    textarea, input[type="text"] {
+      width: 100%; padding: 0.75rem; font-size: 1rem; box-sizing: border-box;
+    }
+    button { padding: 0.6rem 1rem; margin-right: 0.5rem; font-size: 1rem; cursor: pointer; }
+    .output {
+      margin-top: 1rem; padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px;
+      font-family: monospace; background: #f9f9f9;
+    }
+    .row { margin-top: 0.75rem; }
+    .order-buttons button.active { background: #0078d7; color: white; }
+  </style>
+</head>
+<body>
+  <h1>MC Answer Formatter</h1>
+  <p>Type shorthand answers (e.g. <code>abcd</code>, <code>a/b/c/d</code>, <code>1a2b3c4d</code>, <code>3.A 5.B 4.C 2.A 1.A</code>) and click Format.</p>
+
+  <label for="input">Input</label>
+  <textarea id="input" rows="5" placeholder="e.g. 3.A 5.B 4.C 2.A 1.A"></textarea>
+
+  <div class="row">
+    <button id="formatBtn">Format</button>
+    <button id="copyBtn">Copy Output</button>
+    <button id="clearBtn">Clear</button>
+  </div>
+
+  <div class="row order-buttons">
+    <span>Order:</span>
+    <button id="ascBtn" class="active">Ascending</button>
+    <button id="descBtn">Descending</button>
+    <button id="origBtn">Original</button>
+  </div>
+
+  <label for="output" style="margin-top:1rem; display:block;">Output</label>
+  <input id="output" class="output" type="text" readonly placeholder="A|B|C|" />
+
+  <script>
+    let orderMode = "asc"; // default
+
+    function extractPairs(text) {
+      // Match patterns like "3.A", "2 B", "1a", etc.
+      const regex = /(\d+)?\s*\.?\s*([a-zA-Z])/g;
+      const pairs = [];
+      let m;
+      while ((m = regex.exec(text)) !== null) {
+        const num = m[1] ? parseInt(m[1], 10) : null;
+        const letter = m[2].toUpperCase();
+        pairs.push({ num, letter });
+      }
+      return pairs;
+    }
+
+    function orderPairs(pairs) {
+      if (orderMode === "asc") {
+        return pairs.slice().sort((a, b) => {
+          if (a.num == null) return 1;
+          if (b.num == null) return -1;
+          return a.num - b.num;
+        });
+      } else if (orderMode === "desc") {
+        return pairs.slice().sort((a, b) => {
+          if (a.num == null) return 1;
+          if (b.num == null) return -1;
+          return b.num - a.num;
+        });
+      } else {
+        return pairs; // original order
+      }
+    }
+
+    function toPipeFormat(pairs) {
+      return pairs.map(p => p.letter + "|").join("");
+    }
+
+    function formatInput() {
+      const input = document.getElementById("input").value;
+      const pairs = extractPairs(input);
+      const ordered = orderPairs(pairs);
+      const output = toPipeFormat(ordered);
+      document.getElementById("output").value = output;
+    }
+
+    document.getElementById("formatBtn").addEventListener("click", formatInput);
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      document.getElementById("input").value = "";
+      document.getElementById("output").value = "";
+    });
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      const out = document.getElementById("output").value;
+      try {
+        await navigator.clipboard.writeText(out);
+        alert("Output copied to clipboard.");
+      } catch {
+        alert("Copy failed. Please select and copy manually.");
+      }
+    });
+
+    // Order buttons
+    function setOrder(mode) {
+      orderMode = mode;
+      document.querySelectorAll(".order-buttons button").forEach(btn => btn.classList.remove("active"));
+      if (mode === "asc") document.getElementById("ascBtn").classList.add("active");
+      if (mode === "desc") document.getElementById("descBtn").classList.add("active");
+      if (mode === "orig") document.getElementById("origBtn").classList.add("active");
+      formatInput();
+    }
+
+    document.getElementById("ascBtn").addEventListener("click", () => setOrder("asc"));
+    document.getElementById("descBtn").addEventListener("click", () => setOrder("desc"));
+    document.getElementById("origBtn").addEventListener("click", () => setOrder("orig"));
+
+    // Live formatting
+    document.getElementById("input").addEventListener("input", formatInput);
+  </script>
+</body>
+</html>
