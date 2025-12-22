@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>MC Scanner</title>
+<style>
+  body { font-family: sans-serif; margin:0; }
+  #container { display:flex; flex-direction:row; }
+  #left, #right {
+    flex:1; /* each takes 50% */
+    padding:20px;
+    box-sizing:border-box;
+  }
+  #left {
+    background-color:#e6f0ff; /* light blue background */
+  }
+  #bottom { margin-top:10px; padding:10px; background:#fafafa; }
+  canvas { border:1px solid #ccc; max-width:100%; height:auto; }
+  #log { white-space: pre-line; background:#fff; padding:10px; height:200px; overflow:auto; }
+  label { display:inline-block; width:140px; }
+</style>
+</head>
+<body>
+
+<h2 style="margin:10px;">MC Scanner Demo</h2>
+
+<div id="container">
+  <div id="left">
+    <!-- Settings inputs -->
+    <label>Settings JSON:</label>
+    <input id="settingsInput" type="file" accept=".json"><br/><br/>
+
+    <h3>Settings</h3>
+    <label>Save File:</label>
+    <input id="saveFile" type="text" value="Save"><br/>
+
+    <label>Step File:</label>
+    <input id="stepFile" type="text" value="Step"><br/>
+
+    <label>PositionsTxt:</label>
+    <input id="positionsTxt" type="text" value="Pos"><br/>
+
+    <label>Save Pixels X:</label>
+    <input id="savePixelsX" type="number" value="2480"><br/>
+
+    <label>Save Pixels Y:</label>
+    <input id="savePixelsY" type="number" value="3508"><br/>
+
+    <label>Search Percent:</label>
+    <input id="searchPercentBox" type="number" value="2" min="1" max="20"><br/>
+
+    <label>Step Required:</label>
+    <input id="stepRequired" type="checkbox"><br/><br/>
+
+    <!-- Load image button below settings -->
+    <input id="fileInput" type="file" accept="image/*" multiple><br/>
+    <button id="loadBtn">Load Image</button>
+    <br/><br/>
+
+    <!-- Download aligned + copy buttons -->
+    <button id="downloadBtn" disabled>Download Aligned</button>
+    <button id="copyBtn" disabled>Copy Aligned</button>
+    <button id="copyDataUrlBtn" disabled>Copy Data URL</button>
+    <br/>
+    <span id="copyStatus" style="font-size:0.9em;color:#333;"></span>
+  </div>
+
+  <div id="right">
+    <canvas id="canvas" width="800" height="800"></canvas>
+  </div>
+</div>
+
+<div id="bottom">
+  <div id="log"></div>
+</div>
+
+<script src="https://docs.opencv.org/4.x/opencv.js"></script>
+<script>
+    
+let cvReady = false;
+cv.onRuntimeInitialized = () => {
+  cvReady = true;
+  log("[INFO] OpenCV.js initialized");
+};
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let imgMat = null;
+let alignedMat = null;
+let scale=1, offsetX=0, offsetY=0;
+let clicks = [];
+let refinedPoints = [];
+
+// settings object with defaults
+let settings = {
+  save_file: "Save",
+  step_file: "Step",
+  PositionsTxt: "Pos",
+  save_pixels_x: 0,
+  save_pixels_y: 0,
+  search_percent: 2,
+  StepRequired: true
+};
+
+function log(msg) {
+  const logDiv = document.getElementById('log');
+  logDiv.textContent += msg + "\n";
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+// update settings object from UI
+function updateSettingsFromUI() {
+  settings.save_file = document.getElementById('saveFile').value;
+  settings.step_file = document.getElementById('stepFile').value;
+  settings.PositionsTxt = document.getElementById('positionsTxt').value;
+  settings.save_pixels_x = parseInt(document.getElementById('savePixelsX').value);
+  settings.save_pixels_y = parseInt(document.getElementById('savePixelsY').value);
+  settings.search_percent = parseFloat(document.getElementById('searchPercentBox').value);
+  settings.StepRequired = document.getElementById('stepRequired').checked;
+  log("[INFO] Settings updated from UI: " + JSON.stringify(settings));
+}
+
+// initialize settings from UI on page load
+window.addEventListener('DOMContentLoaded', () => {
+  updateSettingsFromUI();
+});
+
+// update UI from settings object
+function updateUIFromSettings() {
+  document.getElementById('saveFile').value = settings.save_file;
+  document.getElementById('stepFile').value = settings.step_file;
+  document.getElementById('positionsTxt').value = settings.PositionsTxt;
+  document.getElementById('savePixelsX').value = settings.save_pixels_x;
+  document.getElementById('savePixelsY').value = settings.save_pixels_y;
+  document.getElementById('searchPercentBox').value = settings.search_percent;
+  document.getElementById('stepRequired').checked = settings.StepRequired;
+}
+
+// attach listeners to settings inputs
+document.querySelectorAll('#saveFile,#stepFile,#positionsTxt,#savePixelsX,#savePixelsY,#searchPercentBox,#stepRequired')
+  .forEach(el => el.addEventListener('input', updateSettingsFromUI));
+
+// load settings.json
+document.getElementById('settingsInput').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  try {
+    const js = JSON.parse(text);
+    Object.assign(settings, js);
+    log("[INFO] Settings loaded: " + JSON.stringify(settings));
+    updateUIFromSettings();
+  } catch(err) {
+    log("[ERROR] Failed to parse settings.json");
+  }
+});
+
+document.getElementById('loadBtn').addEventListener('click', async () => {
+  if (!cvReady) { log("[ERROR] OpenCV not ready yet."); return; }
+  const file = document.getElementById('fileInput').files[0];
+  if (!file) { log("[ERROR] No file selected."); return; }
+  log("[INFO] Loading " + file.name);
+  imgMat = await loadCvMatFromFile(file);
+  clicks = [];
+  redrawCanvas();
+  log("[INFO] Image ready. Tap or click 4 corners (LT, RT, RB, LB).");
+});
+// Use pointer events for cross‑device input
+canvas.addEventListener('pointerdown', e => {
+  if (!imgMat) return;
+  const rect = canvas.getBoundingClientRect();
+  // Normalize coordinates to canvas space
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  const ix = Math.round((x - offsetX)/scale);
+  const iy = Math.round((y - offsetY)/scale);
+  clicks.push({x:ix,y:iy});
+  log(`[INFO] Pointer ${clicks.length}/4 display=(${x},${y}) -> image=(${ix},${iy})`);
+  redrawCanvas();
+  if (clicks.length===4) {
+    log("[INFO] 4 points clicked. Refining corners...");
+    refineAndTransform();
+  }
+});
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  if (!alignedMat) { log("[ERROR] No aligned image yet."); return; }
+  matToBlob(alignedMat).then(blob=>{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = settings.save_file + ".png";
+    a.click();
+    URL.revokeObjectURL(url);
+    log("[INFO] Final aligned image downloaded.");
+
+    // StepRequired: also download step image + positions
+    if (settings.StepRequired) {
+      const stepCanvas = document.createElement('canvas');
+      stepCanvas.width = canvas.width;
+      stepCanvas.height = canvas.height;
+      const stepCtx = stepCanvas.getContext('2d');
+      redrawCanvas();
+      stepCtx.drawImage(canvas,0,0);
+
+      // draw refined points as blue X marks
+      stepCtx.strokeStyle="blue";
+      stepCtx.lineWidth=2;
+      for (const p of refinedPoints) {
+        const dx = p.x*scale + offsetX;
+        const dy = p.y*scale + offsetY;
+        stepCtx.beginPath();
+        stepCtx.moveTo(dx-6, dy-6);
+        stepCtx.lineTo(dx+6, dy+6);
+        stepCtx.moveTo(dx+6, dy-6);
+        stepCtx.lineTo(dx-6, dy+6);
+        stepCtx.stroke();
+      }
+
+      stepCanvas.toBlob(blob=>{
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = settings.step_file + ".png";
+        a.click();
+        URL.revokeObjectURL(url);
+        log("[INFO] Step image with overlays + refined X marks downloaded.");
+      },'image/png');
+
+      const posText = refinedPoints.map((p,i)=>`P${i+1}: ${p.x},${p.y}`).join("\n");
+      const blob = new Blob([posText], {type:"text/plain"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = settings.PositionsTxt + ".txt";
+      a.click();
+      URL.revokeObjectURL(url);
+      log("[INFO] Positions text downloaded.");
+    }
+  });
+});
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  if (!alignedMat) { log("[ERROR] No aligned image yet."); return; }
+  const blob = await matToBlob(alignedMat);
+  const item = new ClipboardItem({ "image/png": blob });
+  await navigator.clipboard.write([item]);
+  log("[INFO] Aligned image copied to clipboard.");
+});
+
+document.getElementById('copyDataUrlBtn').addEventListener('click', async () => {
+  if (!alignedMat) { 
+    log("[ERROR] No aligned image yet."); 
+    document.getElementById('copyStatus').textContent = "❌ No aligned image yet.";
+    return; 
+  }
+
+  // Stage 1: show "Copying..."
+  document.getElementById('copyStatus').textContent = "Copying...";
+
+  const blob = await matToBlob(alignedMat, "jpeg", 0.7);
+  const reader = new FileReader();
+  reader.onloadend = async () => {
+    const dataUrl = reader.result;
+    try {
+      await navigator.clipboard.writeText(dataUrl);
+
+      // Stage 3: show "Done!"
+      document.getElementById('copyStatus').textContent = "✅ Done! Data URL copied.";
+      log("[INFO] Data URL copied to clipboard.");
+    } catch (err) {
+      document.getElementById('copyStatus').textContent = "⚠️ Clipboard blocked.";
+      log("[ERROR] Clipboard blocked. Could not copy data URL.");
+    }
+  };
+  reader.readAsDataURL(blob);
+});
+
+async function loadCvMatFromFile(file) {
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      log(`[INFO] Decoded image size: ${image.width}x${image.height}`);
+      const c = document.createElement('canvas');
+      c.width = image.width; c.height = image.height;
+      c.getContext('2d').drawImage(image,0,0);
+      const id = c.getContext('2d').getImageData(0,0,c.width,c.height);
+      const mat = cv.matFromImageData(id);
+      URL.revokeObjectURL(url);
+      resolve(mat);
+    };
+    image.onerror = () => { log("[ERROR] Failed to decode image."); reject(); };
+    image.src = url;
+  });
+}
+
+function drawImage(mat) {
+  const w = mat.cols, h = mat.rows;
+  scale = Math.min(canvas.width/w, canvas.height/h);
+  const scaledW = Math.round(w*scale), scaledH = Math.round(h*scale);
+  offsetX = (canvas.width-scaledW)/2;
+  offsetY = (canvas.height-scaledH)/2;
+  let rgba = new cv.Mat(); cv.cvtColor(mat, rgba, cv.COLOR_BGR2RGBA);
+  let id = new ImageData(new Uint8ClampedArray(rgba.data), w, h);
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+  let tmp = document.createElement('canvas'); tmp.width=w; tmp.height=h;
+  tmp.getContext('2d').putImageData(id,0,0);
+  ctx.drawImage(tmp,0,0,w,h,offsetX,offsetY,scaledW,scaledH);
+  rgba.delete();
+}
+
+function redrawCanvas() {
+  if (!imgMat) return;
+  drawImage(imgMat);
+  // red dots
+  ctx.fillStyle="red";
+  for (const p of clicks) {
+    const dx = p.x*scale + offsetX;
+    const dy = p.y*scale + offsetY;
+    ctx.beginPath();
+    ctx.arc(dx,dy,6,0,Math.PI*2);
+    ctx.fill();
+  }
+  // green boxes
+  const percent = settings.search_percent/100.0;
+  const searchRadius = Math.round(percent * Math.max(imgMat.cols,imgMat.rows));
+  ctx.strokeStyle="darkgreen";
+  ctx.lineWidth=2;
+  for (const p of clicks) {
+    const dx = p.x*scale + offsetX;
+    const dy = p.y*scale + offsetY;
+    const r = searchRadius*scale;
+    ctx.strokeRect(dx-r, dy-r, 2*r, 2*r);
+  }
+}
+
+function refineAndTransform() {
+  let gray = new cv.Mat();
+  cv.cvtColor(imgMat, gray, cv.COLOR_RGBA2GRAY);
+  let thresh = new cv.Mat();
+  cv.threshold(gray, thresh, 50, 255, cv.THRESH_BINARY_INV);
+  gray.delete();
+
+  refinedPoints = [];
+  const imgW = thresh.cols, imgH = thresh.rows;
+  const percent = settings.search_percent/100.0;
+  const searchRadius = Math.round(percent * Math.max(imgW,imgH));
+  log(`[INFO] Refining with search radius ${searchRadius}px`);
+
+  for (let i=0;i<clicks.length;i++) {
+    const px=clicks[i].x, py=clicks[i].y;
+    const x1=Math.max(px-searchRadius,0), y1=Math.max(py-searchRadius,0);
+    const x2=Math.min(px+searchRadius,imgW), y2=Math.min(py+searchRadius,imgH);
+    const roi=thresh.roi(new cv.Rect(x1,y1,x2-x1,y2-y1));
+    let contours=new cv.MatVector(), hier=new cv.Mat();
+    cv.findContours(roi,contours,hier,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
+    if (contours.size()>0) {
+      let maxIdx=0, maxArea=0;
+      for (let k=0;k<contours.size();k++) {
+        const r=cv.boundingRect(contours.get(k));
+        const area=r.width*r.height;
+        if(area>maxArea){maxArea=area;maxIdx=k;}
+      }
+      const rect=cv.boundingRect(contours.get(maxIdx));
+      const bx=x1+rect.x, by=y1+rect.y, bw=rect.width, bh=rect.height;
+      if(i===0) refinedPoints.push({x:bx,y:by});             // LT
+      else if(i===1) refinedPoints.push({x:bx+bw,y:by});     // RT
+      else if(i===2) refinedPoints.push({x:bx+bw,y:by+bh});  // RB
+      else if(i===3) refinedPoints.push({x:bx,y:by+bh});     // LB
+    } else {
+      refinedPoints.push({x:px,y:py}); // fallback
+    }
+    roi.delete(); contours.delete(); hier.delete();
+  }
+
+  log("[INFO] Refined points: " + JSON.stringify(refinedPoints));
+    // Perspective transform
+  let bgr = new cv.Mat();
+  cv.cvtColor(imgMat, bgr, cv.COLOR_RGBA2BGR);
+  alignedMat = new cv.Mat();
+  const srcPts = cv.matFromArray(4,1,cv.CV_32FC2,[
+    refinedPoints[0].x,refinedPoints[0].y,
+    refinedPoints[1].x,refinedPoints[1].y,
+    refinedPoints[2].x,refinedPoints[2].y,
+    refinedPoints[3].x,refinedPoints[3].y
+  ]);
+  const dstPts = cv.matFromArray(4,1,cv.CV_32FC2,[
+    0,0,
+    bgr.cols,0,
+    bgr.cols,bgr.rows,
+    0,bgr.rows
+  ]);
+  const M = cv.getPerspectiveTransform(srcPts,dstPts);
+  cv.warpPerspective(bgr, alignedMat, M, new cv.Size(bgr.cols,bgr.rows));
+
+  // Resize output if requested
+  if (settings.save_pixels_x > 0 && settings.save_pixels_y > 0) {
+    let resized = new cv.Mat();
+    cv.resize(alignedMat, resized, new cv.Size(settings.save_pixels_x, settings.save_pixels_y));
+    alignedMat.delete();
+    alignedMat = resized;
+    log(`[INFO] Output resized to ${settings.save_pixels_x}x${settings.save_pixels_y}`);
+  }
+
+  log("[INFO] Perspective transform complete. Showing aligned image.");
+  drawImage(alignedMat);
+  document.getElementById('downloadBtn').disabled = false;
+  document.getElementById('copyBtn').disabled = false;
+  document.getElementById('copyDataUrlBtn').disabled = false;
+
+  srcPts.delete(); dstPts.delete(); M.delete(); bgr.delete(); thresh.delete();
+}
+
+// helper to convert cv.Mat to PNG blob
+function matToBlob(mat) {
+  let rgba = new cv.Mat();
+  cv.cvtColor(mat, rgba, cv.COLOR_BGR2RGBA);
+  const c = document.createElement('canvas');
+  c.width = rgba.cols; 
+  c.height = rgba.rows;
+  const ctx2 = c.getContext('2d');
+  const id = new ImageData(new Uint8ClampedArray(rgba.data), rgba.cols, rgba.rows);
+  ctx2.putImageData(id, 0, 0);
+  rgba.delete();
+  return new Promise(resolve => c.toBlob(resolve, 'image/png'));
+}
+</script>
+</body>
+</html>
