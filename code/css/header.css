@@ -1,0 +1,19 @@
+.site-header {
+  background-color: rgb(0, 213, 255);
+  position: fixed;
+  top: 0;
+  left: -10px;
+  width: 101%;
+  height: 70px;
+  padding-bottom: 5px;  /* adds extra background space */
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.site-header a img {
+  float: left;
+  position: relative;
+  left: 10px;
+  height: 75px;
+  border: 0;
+}

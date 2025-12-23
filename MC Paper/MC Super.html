@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MC Answer Formatter with Ordering</title>
+  <title>MC Answer Formatter with Ordering + Count</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
@@ -16,9 +16,13 @@
     }
     .row { margin-top: 0.75rem; }
     .order-buttons button.active { background: #0078d7; color: white; }
+    #count { margin-top: 0.5rem; font-weight: bold; }
   </style>
 </head>
 <body>
+  
+  <script src="../code/js/header.js"></script>
+
   <h1>MC Answer Formatter</h1>
   <p>Type shorthand answers (e.g. <code>abcd</code>, <code>a/b/c/d</code>, <code>1a2b3c4d</code>, <code>3.A 5.B 4.C 2.A 1.A</code>) and click Format.</p>
 
@@ -40,6 +44,7 @@
 
   <label for="output" style="margin-top:1rem; display:block;">Output</label>
   <input id="output" class="output" type="text" readonly placeholder="A|B|C|" />
+  <div id="count">Total answers: 0</div>
 
   <script>
     let orderMode = "asc"; // default
@@ -85,12 +90,14 @@
       const ordered = orderPairs(pairs);
       const output = toPipeFormat(ordered);
       document.getElementById("output").value = output;
+      document.getElementById("count").textContent = "Total answers: " + ordered.length;
     }
 
     document.getElementById("formatBtn").addEventListener("click", formatInput);
     document.getElementById("clearBtn").addEventListener("click", () => {
       document.getElementById("input").value = "";
       document.getElementById("output").value = "";
+      document.getElementById("count").textContent = "Total answers: 0";
     });
     document.getElementById("copyBtn").addEventListener("click", async () => {
       const out = document.getElementById("output").value;
