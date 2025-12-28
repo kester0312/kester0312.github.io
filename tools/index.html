@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Multi Format Image Converter</title>
+  <style>
+    body { font-family: system-ui; margin: 2rem; }
+    .log { font-family: monospace; white-space: pre-wrap; background: #f8f9fb; border: 1px solid #ccc; padding: 0.75rem; max-height: 240px; overflow: auto; }
+    .progress { width: 100%; background: #eee; border-radius: 6px; margin-top: 0.5rem; }
+    .progress-bar { height: 16px; background: #2563eb; width: 0%; border-radius: 6px; }
+    button { background: #2563eb; color: #fff; padding: 0.5rem; border: none; border-radius: 6px; cursor: pointer; }
+    button[disabled] { opacity: 0.5; cursor: not-allowed; }
+    small { color:#555; }
+  </style>
+</head>
+<body>
+  <h1>Multi Format Image Converter</h1>
+
+  <input id="fileInput" type="file"
+    accept=".png,.jpg,.jpeg,.heic,.webp,.ico,.apng,.bmp,.svg,.gif,.tif,.tiff,.avif"
+    multiple />
+
+  <br><br>
+  <select id="outputSelect">
+    <option value="jpg" selected>JPG</option>
+    <option value="jpeg">JPEG</option>
+    <option value="png">PNG</option>
+    <option value="webp">WEBP</option>
+    <option value="bmp">BMP</option>
+    <option value="gif">GIF (first frame only)</option>
+    <option value="tiff">TIFF (best-effort)</option>
+    <option value="avif">AVIF (if browser supports)</option>
+    <option value="svg">SVG (raster→SVG not supported)</option>
+    <option value="ico">ICO</option>
+    <option value="same">Keep Same Format</option>
+  </select>
+
+  <br><br>
+  <button id="convertBtn" disabled>Convert & download</button>
+
+  <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+  <small>
+    Notes: Animated GIF/APNG export first frame. SVG input rasterizes via canvg. ICO input parsed via icojs, ICO output generated via browser-ico.
+  </small>
+
+  <h3>Log</h3>
+  <div id="log" class="log">[Log initialized]</div>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/icojs/dist/ico.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvg/dist/browser/canvg.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/browser-ico/dist/browser-ico.min.js"></script>
+
+  <script>
+    const logEl = document.getElementById("log");
+    const fileInput = document.getElementById("fileInput");
+    const outputSelect = document.getElementById("outputSelect");
+    const convertBtn = document.getElementById("convertBtn");
+    const progressBar = document.getElementById("progressBar");
+
+    function log(msg) {
+      logEl.textContent += "\n" + msg;
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(msg);
+    }
+    function setProgress(pct) {
+      progressBar.style.width = pct + "%";
+    }
+
+    fileInput.addEventListener("change", () => {
+      const files = fileInput.files;
+      if (!files.length) { log("No files selected"); convertBtn.disabled = true; return; }
+      log(`Files chosen: ${files.length}`);
+      convertBtn.disabled = false;
+    });
+
+    convertBtn.addEventListener("click", async () => {
+      const files = fileInput.files;
+      if (!files.length) { log("No files"); return; }
+      const outFmt = outputSelect.value || "jpg";
+
+      log(`Starting batch conversion (${files.length} files) → ${outFmt}`);
+      let done = 0;
+      setProgress(1);
+
+      for (const file of files) {
+        const name = file.name;
+        const ext = (name.split(".").pop() || "").toLowerCase();
+        const type = file.type || "";
+        try {
+          let resultBlob;
+          const isHEIC = type === "image/heic" || ext === "heic";
+          const isSVG = type === "image/svg+xml" || ext === "svg";
+          const isICO = ext === "ico";
+
+          if (outFmt === "same") {
+            if (isHEIC) {
+              resultBlob = await heic2any({ blob: file, toType: "image/jpeg" });
+            } else {
+              resultBlob = file;
+            }
+          } else if (isHEIC) {
+            resultBlob = await heic2any({ blob: file, toType: "image/" + outFmt });
+          } else if (isSVG) {
+            if (outFmt === "svg") {
+              resultBlob = file;
+            } else {
+              const text = await file.text();
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
+              const v = await Canvg.fromString(ctx, text);
+              await v.render();
+              resultBlob = await new Promise(res => canvas.toBlob(res, "image/" + outFmt));
+            }
+          } else if (isICO) {
+            const arrayBuffer = await file.arrayBuffer();
+            const images = await ICO.parse(arrayBuffer);
+            if (!images.length) { log(`ICO parse failed for ${name}`); continue; }
+            const pngBlob = new Blob([images[0].buffer], { type: "image/png" });
+            if (outFmt === "ico") {
+              // Generate ICO from PNG using browser-ico
+              const pngArrayBuffer = await pngBlob.arrayBuffer();
+              const icoBuffer = window.browserIco.encode([new Uint8Array(pngArrayBuffer)]);
+              resultBlob = new Blob([icoBuffer], { type: "image/x-icon" });
+            } else {
+              const img = await blobToImage(pngBlob);
+              const canvas = document.createElement("canvas");
+              canvas.width = img.width;
+              canvas.height = img.height;
+              canvas.getContext("2d").drawImage(img, 0, 0);
+              resultBlob = await new Promise(res => canvas.toBlob(res, "image/" + outFmt));
+            }
+          } else {
+            const img = await blobToImage(file);
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            if (outFmt === "ico") {
+              const pngBlob = await new Promise(res => canvas.toBlob(res, "image/png"));
+              const pngArrayBuffer = await pngBlob.arrayBuffer();
+              const icoBuffer = window.browserIco.encode([new Uint8Array(pngArrayBuffer)]);
+              resultBlob = new Blob([icoBuffer], { type: "image/x-icon" });
+            } else if (outFmt === "svg") {
+              log(`Raster → SVG not supported, skipping ${name}`);
+              continue;
+            } else {
+              resultBlob = await new Promise(res => canvas.toBlob(res, "image/" + outFmt));
+            }
+          }
+
+          // Download
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(resultBlob);
+          const newExt = outFmt === "same" ? ext : outFmt;
+          a.download = name.replace(/\.[a-z0-9]+$/i, "." + newExt);
+          a.click();
+
+          done++;
+          setProgress(Math.max(2, Math.round((done / files.length) * 100)));
+          log(`Converted: ${name} → ${outFmt === "same" ? ext.toUpperCase() : outFmt.toUpperCase()}`);
+        } catch (e) {
+          log(`Conversion failed for ${name}: ${e.message}`);
+        }
+      }
+
+      setProgress(100);
+      log("Batch conversion finished ✅");
+    });
+
+    async function blobToImage(blob) {
+      const url = URL.createObjectURL(blob);
+      return new Promise((res, rej) => {
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); res(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("Image decode failed")); };
+        img.src = url;
+      });
+    }
+  </script>
+</body>
+</html>
