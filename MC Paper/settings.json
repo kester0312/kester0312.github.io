@@ -1,0 +1,10 @@
+{
+  "1-10":   "number|10|Paper No.",
+  "11-20":  "number|0|Subject No.",
+  "21-30":  "number|0|Subject No.",
+  "31-40":  "number|0|Subject No.",
+  "41-46":  "number|0|Secondary",
+  "47-50":  "keep",
+  "51-55":  "Letter|V-J-M-S-N|Class",
+  "56-100": "keep"
+}

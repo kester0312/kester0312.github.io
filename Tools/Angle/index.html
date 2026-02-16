@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Math Exam Figure Maker</title>
+  <style>
+    canvas { border: 1px solid black; cursor: crosshair; }
+    .toolbar { margin: 10px; }
+    button, input { margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <h2>Math Exam Figure Maker</h2>
+  <div class="toolbar">
+    <button onclick="setMode('point')">Add Point</button>
+    <button onclick="setMode('line')">Add Line</button>
+    <button onclick="setMode('selectLine')">Select Line</button>
+    <button onclick="saveState()">Save</button>
+    <button onclick="loadState()">Load</button>
+    <br>
+    Angle: <input type="number" id="angleInput" style="width:60px;">
+    Length: <input type="number" id="lengthInput" style="width:60px;">
+    Color: <input type="color" id="colorInput" value="#ff0000">
+    <button onclick="applyLineSettings()">Apply to Selected Line</button>
+  </div>
+  <canvas id="board" width="600" height="400"></canvas>
+  <p id="info"></p>
+
+  <script>
+    const canvas = document.getElementById("board");
+    const ctx = canvas.getContext("2d");
+    let mode = "point";
+    const points = [];
+    const lines = [];
+    let selectedPoints = [];
+    let selectedLine = null;
+    const origin = { x: canvas.width/2, y: canvas.height/2 };
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById("info").textContent = `Mode: ${mode}`;
+    }
+
+    function drawAll() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // axes
+      ctx.strokeStyle = "#ccc";
+      ctx.beginPath();
+      ctx.moveTo(origin.x, 0); ctx.lineTo(origin.x, canvas.height);
+      ctx.moveTo(0, origin.y); ctx.lineTo(canvas.width, origin.y);
+      ctx.stroke();
+
+      // lines
+      lines.forEach(line => {
+        ctx.beginPath();
+        ctx.moveTo(line.p1.x, line.p1.y);
+        ctx.lineTo(line.p2.x, line.p2.y);
+        ctx.strokeStyle = line.color || "red";
+        ctx.lineWidth = (line === selectedLine) ? 3 : 1; // highlight selected
+        ctx.stroke();
+      });
+
+      // points
+      points.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+        ctx.fillStyle = "blue";
+        ctx.fill();
+        ctx.fillText(i, p.x+8, p.y-8);
+      });
+    }
+
+    function addPoint(x,y) {
+      points.push({ id: points.length, x, y });
+      drawAll();
+    }
+
+    function addLine(p1,p2) {
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const length = Math.hypot(dx,dy);
+      const angle = Math.atan2(dy,dx) * 180/Math.PI;
+      lines.push({ id: lines.length, p1, p2, angle, length, color:"#ff0000" });
+      drawAll();
+    }
+
+    function findNearestPoint(x,y) {
+      let nearest=null, minDist=10;
+      points.forEach(p=>{
+        const d=Math.hypot(p.x-x,p.y-y);
+        if(d<minDist){nearest=p;minDist=d;}
+      });
+      return nearest;
+    }
+
+    function findNearestLine(x,y) {
+      let nearest=null, minDist=10;
+      lines.forEach(l=>{
+        // distance from click to line segment
+        const d = pointLineDistance({x,y}, l.p1, l.p2);
+        if(d<minDist){nearest=l;minDist=d;}
+      });
+      return nearest;
+    }
+
+    function pointLineDistance(pt, p1, p2) {
+      const A = pt.x - p1.x;
+      const B = pt.y - p1.y;
+      const C = p2.x - p1.x;
+      const D = p2.y - p1.y;
+      const dot = A*C + B*D;
+      const lenSq = C*C + D*D;
+      let param = -1;
+      if(lenSq !== 0) param = dot / lenSq;
+      let xx, yy;
+      if(param < 0){xx=p1.x;yy=p1.y;}
+      else if(param > 1){xx=p2.x;yy=p2.y;}
+      else {xx=p1.x+param*C;yy=p1.y+param+D;}
+      return Math.hypot(pt.x-xx, pt.y-yy);
+    }
+
+    canvas.addEventListener("click",(e)=>{
+      const rect=canvas.getBoundingClientRect();
+      const x=e.clientX-rect.left, y=e.clientY-rect.top;
+
+      if(mode==="point") addPoint(x,y);
+      else if(mode==="line"){
+        const nearest=findNearestPoint(x,y);
+        if(nearest){
+          selectedPoints.push(nearest);
+          if(selectedPoints.length===2){
+            addLine(selectedPoints[0],selectedPoints[1]);
+            selectedPoints=[];
+          }
+        }
+      } else if(mode==="selectLine"){
+        selectedLine=findNearestLine(x,y);
+        if(selectedLine){
+          document.getElementById("angleInput").value=selectedLine.angle.toFixed(1);
+          document.getElementById("lengthInput").value=selectedLine.length.toFixed(1);
+          document.getElementById("colorInput").value=selectedLine.color;
+        }
+        drawAll();
+      }
+    });
+
+    function applyLineSettings(){
+      if(!selectedLine) return;
+      const angleDeg=parseFloat(document.getElementById("angleInput").value);
+      const length=parseFloat(document.getElementById("lengthInput").value);
+      const color=document.getElementById("colorInput").value;
+
+      selectedLine.angle=angleDeg;
+      selectedLine.length=length;
+      selectedLine.color=color;
+
+      // recompute p2 based on p1 + angle/length
+      const rad=angleDeg*Math.PI/180;
+      selectedLine.p2.x=selectedLine.p1.x+length*Math.cos(rad);
+      selectedLine.p2.y=selectedLine.p1.y+length*Math.sin(rad);
+
+      drawAll();
+    }
+
+    function saveState(){
+      localStorage.setItem("figureMakerState",JSON.stringify({points,lines}));
+      alert("Saved!");
+    }
+    function loadState(){
+      const state=JSON.parse(localStorage.getItem("figureMakerState"));
+      if(state){
+        points.length=0;lines.length=0;
+        state.points.forEach(p=>points.push(p));
+        state.lines.forEach(l=>lines.push(l));
+        drawAll();
+      }
+    }
+
+    drawAll();
+  </script>
+</body>
+</html>

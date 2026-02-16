@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mark Positions</title>
+<style>
+  body { font-family: system-ui; margin:0; }
+  #controls { padding:10px; background:#f5f7fb; border-bottom:1px solid #ccc; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  canvas { border:1px solid #ccc; background:#fff; touch-action:none; }
+  textarea { width:100%; height:120px; }
+  .btn { padding:6px 10px; border:1px solid #888; background:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="controls">
+  <input id="fileInput" type="file" accept="image/png">
+  <button id="loadBtn" class="btn">Load</button>
+  <label>Zoom:</label>
+  <input id="zoom" type="range" min="0.5" max="6" step="0.1" value="1">
+  <span id="zoomVal">1.0×</span>
+  <button id="resetPan" class="btn">Center</button>
+  <button id="clearSel" class="btn">Clear</button>
+  <button id="saveBtn" class="btn">Save</button>
+  <button id="importBtn" class="btn">Import</button>
+</div>
+<canvas id="canvas" width="1000" height="700"></canvas>
+<textarea id="output"></textarea>
+
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+let imgBitmap=null,iw=0,ih=0;
+let zoomFactor=1.0,panX=0,panY=0;
+let selections=[],selecting=false,lastPointer=null;
+let dragPanning=false;
+
+// convert between canvas and image coords
+function canvasToImage(x,y){return {xImg:(x-panX)/zoomFactor,yImg:(y-panY)/zoomFactor};}
+function imageToCanvas(xImg,yImg){return {xCanvas:xImg*zoomFactor+panX,yCanvas:yImg*zoomFactor+panY};}
+
+function draw(){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(imgBitmap){
+    ctx.setTransform(zoomFactor,0,0,zoomFactor,panX,panY);
+    ctx.drawImage(imgBitmap,0,0,iw,ih);
+    ctx.setTransform(1,0,0,1,0,0);
+  }
+  for(const s of selections){
+    const p=imageToCanvas(s.xImg,s.yImg);
+    ctx.strokeStyle="#ff3b30";ctx.lineWidth=2;
+    ctx.strokeRect(p.xCanvas,p.yCanvas,s.wImg*zoomFactor,s.hImg*zoomFactor);
+  }
+}
+// load image
+document.getElementById('loadBtn').onclick = async () => {
+  const f = document.getElementById('fileInput').files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = async () => {
+    imgBitmap = await createImageBitmap(img);
+    iw = img.width; ih = img.height;
+    draw();
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+};
+
+// zoom slider
+document.getElementById('zoom').oninput = e => {
+  const prevZoom = zoomFactor;
+  zoomFactor = parseFloat(e.target.value);
+  document.getElementById('zoomVal').textContent = zoomFactor.toFixed(1) + "×";
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  panX = cx - (cx - panX) * (zoomFactor / prevZoom);
+  panY = cy - (cy - panY) * (zoomFactor / prevZoom);
+  draw();
+};
+
+// reset pan
+document.getElementById('resetPan').onclick = () => {
+  panX = (canvas.width - iw * zoomFactor) / 2;
+  panY = (canvas.height - ih * zoomFactor) / 2;
+  draw();
+};
+
+// clear selections
+document.getElementById('clearSel').onclick = () => {
+  selections = [];
+  draw();
+};
+
+// pointer events for selection and pan
+canvas.addEventListener('pointerdown', e => {
+  const r = canvas.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  lastPointer = {x,y};
+  if (e.button === 0) { // left click = new selection
+    const p = canvasToImage(x,y);
+    selecting = true;
+    selections.push({xImg:p.xImg,yImg:p.yImg,wImg:0,hImg:0});
+  } else if (e.button === 1 || e.button === 2) { // middle/right = pan
+    dragPanning = true;
+  }
+  e.preventDefault();
+});
+canvas.addEventListener('pointermove', e => {
+  const r = canvas.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  if (dragPanning && lastPointer) {
+    const dx = x - lastPointer.x, dy = y - lastPointer.y;
+    panX += dx; panY += dy;
+    lastPointer = {x,y};
+    draw();
+  } else if (selecting) {
+    const s = selections[selections.length-1];
+    const p = canvasToImage(x,y);
+    s.xImg = Math.min(s.xImg,p.xImg);
+    s.yImg = Math.min(s.yImg,p.yImg);
+    s.wImg = Math.abs(p.xImg-s.xImg);
+    s.hImg = Math.abs(p.yImg-s.yImg);
+    draw();
+  }
+});
+canvas.addEventListener('pointerup', () => {
+  selecting = false;
+  dragPanning = false;
+  lastPointer = null;
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// save positions
+document.getElementById('saveBtn').onclick = () => {
+  let txt = "";
+  selections.forEach((s,i) => {
+    txt += `${Math.round(s.xImg)},${Math.round(s.yImg)},${Math.round(s.wImg)},${Math.round(s.hImg)}\n`;
+  });
+  document.getElementById('output').value = txt;
+};
+
+// import positions from clipboard
+document.getElementById('importBtn').onclick = async () => {
+  const text = await navigator.clipboard.readText();
+  document.getElementById('output').value = text;
+  selections = [];
+  text.split(/\n/).forEach(line => {
+    const parts = line.match(/(-?\d+)/g);
+    if (parts && parts.length >= 4) {
+      let [x,y,w,h] = parts.map(Number);
+      selections.push({xImg:x,yImg:y,wImg:Math.abs(w),hImg:Math.abs(h)});
+    }
+  });
+  draw();
+};
+</script>
+</body>
+</html>

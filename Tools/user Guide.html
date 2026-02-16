@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PDF Unlocker — Full User Guide</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f1220;
+      --panel: #171a2b;
+      --text: #e8ecf1;
+      --muted: #a9b3c1;
+      --accent: #6bd1ff;
+      --ok: #4ade80;
+      --warn: #fbbf24;
+      --err: #f87171;
+      --code: #0b0e19;
+      --border: #2a2f45;
+    }
+    html, body { background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; margin: 0; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 980px; margin: 0 auto; padding: 32px 20px 60px; }
+    header { margin-bottom: 24px; }
+    header h1 { font-size: 28px; margin: 0 0 8px; }
+    header p { color: var(--muted); margin: 0; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin: 18px 0; }
+    h2 { font-size: 22px; margin: 24px 0 12px; }
+    h3 { font-size: 18px; margin: 18px 0 8px; }
+    ul, ol { margin: 10px 0 10px 22px; }
+    li { margin: 6px 0; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    pre { background: var(--code); border: 1px solid var(--border); border-radius: 10px; padding: 14px; overflow: auto; }
+    .kbd { display: inline-block; padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--code); color: var(--text); font-size: 0.95em; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; margin-right: 6px; border: 1px solid var(--border); }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .err { color: var(--err); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; }
+    .small { color: var(--muted); font-size: 13px; }
+    .callout { border-left: 4px solid var(--accent); padding-left: 12px; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { border: 1px solid var(--border); padding: 10px; text-align: left; }
+    .table th { background: #121527; }
+    .hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>PDF Unlocker — Full User Guide</h1>
+      <p>Batch‑unlock PDFs with multiple passwords, preserve folder structure, copy locked or non‑PDF files, and log everything cleanly.</p>
+    </header>
+
+    <section class="panel">
+      <h2>Overview</h2>
+      <p>
+        This tool processes either a single PDF or an entire folder (including subfolders). It tries multiple passwords from a text file, unlocks PDFs when possible, and mirrors the input folder structure in the output folder. It can optionally copy locked PDFs and non‑PDF files, and write a fresh log for each run.
+      </p>
+      <div>
+        <span class="tag">Unicode‑safe</span>
+        <span class="tag">Folder recursion</span>
+        <span class="tag">Multiple passwords</span>
+        <span class="tag">Config‑driven</span>
+        <span class="tag">Deterministic logging</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Requirements</h2>
+      <ul>
+        <li><strong>Python:</strong> 3.9+ recommended</li>
+        <li><strong>PyMuPDF:</strong> <code>pip install pymupdf</code></li>
+        <li><strong>Windows paths:</strong> Use forward slashes (<code>D:/Folder/File.pdf</code>) or escaped backslashes (<code>D:\\Folder\\File.pdf</code>)</li>
+      </ul>
+      <pre><code class="language-bash">pip install pymupdf</code></pre>
+    </section>
+
+    <section class="panel">
+      <h2>Configuration — settings.json</h2>
+      <p>Place <span class="mono">settings.json</span> next to the script. If any of <span class="mono">input</span>, <span class="mono">output</span>, or <span class="mono">password</span> are empty strings, the script will ask you interactively for that location only.</p>
+
+      <h3>Example: folder mode with full mirroring</h3>
+      <pre><code class="language-json">{
+  "files": true,
+  "CopyWithoutPW": true,
+  "CopyRestFiles": true,
+  "input": "D:/My PDFs/Exam Papers",
+  "output": "D:/Unlocked PDFs",
+  "password": "D:/password.txt",
+  "Log": "Log.txt"
+}</code></pre>
+
+      <h3>Keys</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Type</th>
+            <th>Meaning</th>
+            <th>Default</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>files</code></td>
+            <td>boolean</td>
+            <td><strong>true</strong>=folder mode (recursive); <strong>false</strong>=single file mode</td>
+            <td>false</td>
+          </tr>
+          <tr>
+            <td><code>CopyWithoutPW</code></td>
+            <td>boolean</td>
+            <td>If a PDF can’t be unlocked, copy the original locked file to output</td>
+            <td>false</td>
+          </tr>
+          <tr>
+            <td><code>CopyRestFiles</code></td>
+            <td>boolean</td>
+            <td>Copy non‑PDF files to output, preserving structure</td>
+            <td>false</td>
+          </tr>
+          <tr>
+            <td><code>input</code></td>
+            <td>string</td>
+            <td>Input folder (when <code>files=true</code>) or single PDF path (when <code>files=false</code>)</td>
+            <td>"" → ask</td>
+          </tr>
+          <tr>
+            <td><code>output</code></td>
+            <td>string</td>
+            <td>Output folder root; subfolders are created automatically</td>
+            <td>"" → ask</td>
+          </tr>
+          <tr>
+            <td><code>password</code></td>
+            <td>string</td>
+            <td>Path to <code>password.txt</code> (UTF‑8)</td>
+            <td>"" → ask</td>
+          </tr>
+          <tr>
+            <td><code>Log</code></td>
+            <td>string</td>
+            <td>Log file path/name; if non‑empty, it’s cleared at start and used for this run</td>
+            <td>"" → no log</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout small">
+        <p><strong>Paths with spaces:</strong> Just wrap the entire path in quotes in JSON, e.g. <code>"input": "D:/My PDFs/Exam Papers"</code>. Forward slashes or double backslashes both work.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Password list — password.txt</h2>
+      <p>Provide one candidate password per line. Lines starting with <span class="mono">//</span> are treated as comments and ignored. Unicode and special characters are supported.</p>
+      <pre><code class="language-text">1234
+// common passwords below
+secret
+my//pass
+密碼2025
+</code></pre>
+      <ul>
+        <li><strong>Order matters:</strong> passwords are tried top‑to‑bottom; the first match wins.</li>
+        <li><strong>Encoding:</strong> save as UTF‑8 to avoid invisible character issues.</li>
+        <li><strong>Comments:</strong> only lines starting with <span class="mono">//</span> are ignored; inline comments are treated as part of the password.</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>How it works</h2>
+      <ol>
+        <li><strong>Load config:</strong> reads <span class="mono">settings.json</span>. If <span class="mono">input</span>, <span class="mono">output</span>, or <span class="mono">password</span> are empty, prompts you for each missing one.</li>
+        <li><strong>Load passwords:</strong> reads <span class="mono">password.txt</span>, ignoring comment lines.</li>
+        <li><strong>Discover files:</strong>
+          <ul>
+            <li>Folder mode: walks the entire input tree; collects PDFs (and other files if <span class="mono">CopyRestFiles=true</span>).</li>
+            <li>Single mode: processes the single input PDF.</li>
+          </ul>
+        </li>
+        <li><strong>Process PDFs:</strong>
+          <ul>
+            <li>Tries each password until one works; saves decrypted PDF to the mirrored output path.</li>
+            <li>If none work and <span class="mono">CopyWithoutPW=true</span>, copies the original locked PDF to output; otherwise logs a fail.</li>
+            <li>Already unprotected PDFs are saved directly (no encryption).</li>
+          </ul>
+        </li>
+        <li><strong>Process non‑PDFs:</strong> if <span class="mono">CopyRestFiles=true</span>, copies them to the mirrored output path.</li>
+        <li><strong>Logging:</strong> if <span class="mono">Log</span> is set, the file is cleared at start and all actions are appended during the run.</li>
+      </ol>
+      <div class="grid">
+        <div class="panel">
+          <h3>Result tags</h3>
+          <ul>
+            <li><span class="ok">[OK]</span> Unlocked or saved (already unprotected)</li>
+            <li><span class="warn">[COPY]</span> Copied original (locked or non‑PDF)</li>
+            <li><span class="err">[FAIL]</span> Could not unlock and did not copy</li>
+            <li><span class="err">[ERROR]</span> Unexpected error; may fall back to copy if allowed</li>
+            <li><span class="warn">[SKIP]</span> Output already exists; no overwrite</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Mirrored structure</h3>
+          <p>Output paths are built with <span class="mono">os.path.relpath</span> to preserve the original folder hierarchy:</p>
+          <pre><code class="language-text">Input/
+  A/file1.pdf
+  B/C/file2.pdf
+Output/
+  A/file1.pdf
+  B/C/file2.pdf
+</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Usage examples</h2>
+      <h3>Single PDF mode</h3>
+      <pre><code class="language-json">{
+  "files": false,
+  "CopyWithoutPW": true,
+  "CopyRestFiles": false,
+  "input": "D:/Docs/locked.pdf",
+  "output": "D:/Unlocked",
+  "password": "D:/password.txt",
+  "Log": "Log.txt"
+}</code></pre>
+
+      <h3>Folder mode with interactive prompts</h3>
+      <pre><code class="language-json">{
+  "files": true,
+  "CopyWithoutPW": true,
+  "CopyRestFiles": true,
+  "input": "",
+  "output": "",
+  "password": "",
+  "Log": "Log.txt"
+}</code></pre>
+      <p>On start, you’ll be asked to choose the input folder, output folder, and password file. Only missing values are prompted.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Troubleshooting</h2>
+      <h3>Chinese filenames show as %XX</h3>
+      <ul>
+        <li>This guide’s script uses native filesystem paths and <span class="mono">shutil.copy2</span>; it does not URL‑encode. Ensure your paths are plain strings in JSON (quoted), not URLs.</li>
+        <li>Use forward slashes (<span class="mono">D:/資料/試題.pdf</span>) or escaped backslashes (<span class="mono">D:\\資料\\試題.pdf</span>).</li>
+      </ul>
+
+      <h3>Log says “can’t unlock” but file is unlocked</h3>
+      <ul>
+        <li>Logs are written once per file after trying all passwords. If you see conflicting lines, confirm you’re using the latest script and that <span class="mono">Log.txt</span> is cleared at start.</li>
+        <li>Check <span class="mono">password.txt</span> for trailing spaces or invisible characters; save as UTF‑8.</li>
+      </ul>
+
+      <h3>Paths with spaces</h3>
+      <ul>
+        <li>Just quote the entire path in JSON: <span class="mono">"input": "D:/My PDFs/Exam Papers"</span>.</li>
+        <li>Do not escape spaces; JSON strings accept spaces directly.</li>
+      </ul>
+
+      <h3>Nothing is logged</h3>
+      <ul>
+        <li>Set <span class="mono">"Log": "Log.txt"</span> (or any filename). If <span class="mono">"Log": ""</span>, logging is disabled.</li>
+        <li>If the log cannot be cleared at start, the script disables logging and prints an error.</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>Script (reference)</h2>
+      <p>Save as <span class="mono">pdf_unlocker.py</span>. Ensure <span class="mono">pymupdf</span> is installed.</p>
+      <pre><code class="language-python">import fitz  # PyMuPDF
+import os
+import json
+import shutil
+import sys
+import tkinter as tk
+from tkinter import filedialog
+
+def ask_folder(title):
+    root = tk.Tk()
+    root.withdraw()
+    return filedialog.askdirectory(title=title)
+
+def ask_file(title, filetypes):
+    root = tk.Tk()
+    root.withdraw()
+    return filedialog.askopenfilename(title=title, filetypes=filetypes)
+
+def load_passwords(password_path):
+    """Load passwords from file, ignoring lines starting with //."""
+    if not password_path or not os.path.exists(password_path):
+        print("Password file not found.")
+        return []
+    try:
+        passwords = []
+        with open(password_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("//"):
+                    continue
+                passwords.append(line)
+        return passwords
+    except Exception as e:
+        print(f"Failed to load {password_path}: {e}")
+        return []
+
+def log_message(msg, log_file):
+    print(msg)
+    if log_file:
+        try:
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(msg + "\n")
+        except Exception as e:
+            print(f"[ERROR] Could not write log: {e}")
+
+def unlock_or_copy_pdf(input_path, output_path, passwords, copy_without_pw, log_file):
+    try:
+        if os.path.exists(output_path):
+            log_message(f"[SKIP] Already exists: {output_path}", log_file)
+            return False
+
+        doc = fitz.open(input_path)
+        if doc.is_encrypted:
+            success = False
+            for pw in passwords:
+                if doc.authenticate(pw):
+                    success = True
+                    break
+            if success:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                doc.save(output_path, encryption=fitz.PDF_ENCRYPT_NONE)
+                log_message(f"[OK] Unlocked: {output_path}", log_file)
+                return True
+            else:
+                if copy_without_pw:
+                    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                    shutil.copy2(input_path, output_path)
+                    log_message(f"[COPY] Could not unlock, copied original: {output_path}", log_file)
+                else:
+                    log_message(f"[FAIL] Could not unlock: {input_path}", log_file)
+                return False
+        else:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            doc.save(output_path, encryption=fitz.PDF_ENCRYPT_NONE)
+            log_message(f"[OK] Already unprotected, saved: {output_path}", log_file)
+            return True
+    except Exception as e:
+        if copy_without_pw:
+            try:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                shutil.copy2(input_path, output_path)
+                log_message(f"[ERROR→COPY] {input_path} → {e}", log_file)
+            except Exception as e2:
+                log_message(f"[ERROR] Could not copy {input_path} → {e2}", log_file)
+        else:
+            log_message(f"[ERROR] {input_path} → {e}", log_file)
+        return False
+
+def copy_other_file(input_path, output_path, log_file):
+    try:
+        if os.path.exists(output_path):
+            log_message(f"[SKIP] Already exists: {output_path}", log_file)
+            return False
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        shutil.copy2(input_path, output_path)
+        log_message(f"[COPY] Non-PDF file copied: {output_path}", log_file)
+        return True
+    except Exception as e:
+        log_message(f"[ERROR] Could not copy {input_path} → {e}", log_file)
+        return False
+
+def main():
+    # Load settings.json
+    try:
+        with open("settings.json", "r", encoding="utf-8") as f:
+            settings = json.load(f)
+    except Exception as e:
+        print(f"Failed to load settings.json: {e}")
+        sys.exit(1)
+
+    files_mode = bool(settings.get("files", False))
+    copy_without_pw = bool(settings.get("CopyWithoutPW", False))
+    copy_rest_files = bool(settings.get("CopyRestFiles", False))
+    log_file = settings.get("Log", "")
+    if not log_file:
+        log_file = None
+    else:
+        try:
+            with open(log_file, "w", encoding="utf-8") as f:
+                f.write("")
+        except Exception as e:
+            print(f"[ERROR] Could not clear log file: {e}")
+            log_file = None
+
+    # Input path
+    input_path = settings.get("input", "")
+    if not input_path:
+        if files_mode:
+            input_path = ask_folder("Choose input folder containing PDFs")
+        else:
+            input_path = ask_file("Choose input PDF", [("PDF files", "*.pdf")])
+
+    # Output path
+    output_path = settings.get("output", "")
+    if not output_path:
+        output_path = ask_folder("Choose output folder for unlocked PDFs")
+
+    # Password file
+    password_path = settings.get("password", "")
+    if not password_path:
+        password_path = ask_file("Choose password.txt file", [("Text files", "*.txt")])
+
+    passwords = load_passwords(password_path)
+    if not passwords:
+        print("No passwords loaded.")
+        return
+
+    if files_mode:
+        if not os.path.isdir(input_path):
+            print(f"Input folder not found: {input_path}")
+            return
+        if not os.path.isdir(output_path):
+            os.makedirs(output_path, exist_ok=True)
+
+        all_files = []
+        for dirpath, _, filenames in os.walk(input_path):
+            for f in filenames:
+                all_files.append(os.path.join(dirpath, f))
+
+        if not all_files:
+            print("No files found in folder or subfolders.")
+            return
+
+        log_message(f"Found {len(all_files)} file(s). Processing...", log_file)
+        unlocked, copied_locked, failed, copied_other = 0, 0, 0, 0
+        for fpath in all_files:
+            rel_path = os.path.relpath(fpath, input_path)
+            out_file = os.path.join(output_path, rel_path)
+            if fpath.lower().endswith(".pdf"):
+                result = unlock_or_copy_pdf(fpath, out_file, passwords, copy_without_pw, log_file)
+                if result:
+                    unlocked += 1
+                else:
+                    if copy_without_pw:
+                        copied_locked += 1
+                    else:
+                        failed += 1
+            else:
+                if copy_rest_files:
+                    if copy_other_file(fpath, out_file, log_file):
+                        copied_other += 1
+
+        log_message(
+            f"\nDone. {unlocked} unlocked, {copied_locked} copied (locked PDFs), {failed} failed, {copied_other} other files copied.",
+            log_file
+        )
+
+    else:
+        if not os.path.isfile(input_path):
+            print(f"Input file not found: {input_path}")
+            return
+        if not os.path.isdir(output_path):
+            os.makedirs(output_path, exist_ok=True)
+
+        out_file = os.path.join(output_path, os.path.basename(input_path))
+        unlock_or_copy_pdf(input_path, out_file, passwords, copy_without_pw, log_file)
+        log_message("\nDone.", log_file)
+
+if __name__ == "__main__":
+    main()</code></pre>
+    </section>
+
+    <section class="panel">
+      <h2>Best practices</h2>
+      <ul>
+        <li><strong>Keep logs clean:</strong> set <span class="mono">"Log": "Log.txt"</span> to get a fresh log each run.</li>
+        <li><strong>Use UTF‑8:</strong> save <span class="mono">password.txt</span> in UTF‑8 for reliable matching.</li>
+        <li><strong>Avoid overwrites:</strong> the script skips existing outputs; delete stale files if you want a fresh run.</li>
+        <li><strong>Structure:</strong> choose an output root that’s separate from input to avoid confusion.</li>
+      </ul>
+    </section>
+
+    <hr class="hr" />
+
+    <footer class="small">
+      <p>PDF Unlocker — designed for clarity, reliability, and full visibility. If you want timestamps in logs or inline comment support in <span class="mono">password.txt</span>, you can extend the loader and logger easily.</p>
+    </footer>
+  </div>
+</body>
+</html>

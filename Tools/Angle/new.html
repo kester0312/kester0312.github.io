@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Geometry Tool — Locks, Pan/Zoom, Move</title>
+<style>
+  body{margin:0;font-family:sans-serif;background:#f7f9fc}
+  .app{display:grid;grid-template-columns:340px 1fr;height:100vh}
+  .panel{padding:10px;background:#fff;border-right:1px solid #ddd;display:flex;flex-direction:column;gap:8px}
+  .controls select,.controls input,.controls button{margin:2px;padding:6px}
+  .list,.log{border:1px solid #ddd;padding:4px;overflow:auto;max-height:22vh}
+  .item{display:flex;gap:6px;align-items:center}
+  .log-entry{border-bottom:1px solid #eee;font-size:0.85rem}
+  canvas{width:100%;height:100%;background:#fff}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel">
+    <div class="controls">
+      <select id="mode">
+        <option value="add">Add point</option>
+        <option value="line">Draw line</option>
+        <option value="select">Move</option>
+        <option value="fixAngleABC">Fix ∠ABC</option>
+      </select>
+      <input id="snap" type="number" value="10" title="Snap radius">
+      <input id="fixAngleABCValue" type="number" value="45" title="Target ∠ABC">
+      <button id="reset">Reset</button>
+      <button id="clearLog">Clear Logs</button>
+    </div>
+    <div id="pointList" class="list"></div>
+    <div id="lineList" class="list"></div>
+    <div id="logBox" class="log"></div>
+  </div>
+  <canvas id="canvas"></canvas>
+</div>
+<script>
+(()=> {
+  const state={
+    points:[],lines:[],
+    nextPointId:1,nextLineId:1,
+    mode:'add',pending:null,fixClicks:[],
+    viewport:{x:0,y:0,scale:1},
+    dragging:{active:false,pointId:null,startSX:0,startSY:0,origX:0,origY:0},
+    panning:{active:false,startSX:0,startSY:0,origX:0,origY:0}
+  };
+  const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+  const pointList=document.getElementById('pointList'),lineList=document.getElementById('lineList'),logBox=document.getElementById('logBox');
+  function log(msg){const e=document.createElement('div');e.className='log-entry';e.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;logBox.appendChild(e);logBox.scrollTop=logBox.scrollHeight;console.debug(msg);}
+  document.getElementById('clearLog').onclick=()=>{logBox.innerHTML='';log('Logs cleared');};
+
+  function resize(){canvas.width=canvas.clientWidth;canvas.height=canvas.clientHeight;render();}
+  window.onresize=resize;resize();
+
+  function worldToScreen(wx,wy){const {x,y,scale}=state.viewport;return {sx:wx*scale+x,sy:wy*scale+y};}
+  function screenToWorld(sx,sy){const {x,y,scale}=state.viewport;return {wx:(sx-x)/scale,wy:(sy-y)/scale};}
+
+  function addPoint(wx,wy){const id=state.nextPointId++;state.points.push({id,name:`P${id}`,x:wx,y:wy});log(`Added point ${id} at (${wx},${wy})`);refresh();render();}
+  function addLine(aId,bId){
+    if(!aId||!bId||aId===bId)return;
+    const a=state.points.find(p=>p.id===aId),b=state.points.find(p=>p.id===bId);
+    if(!a||!b){log('Line failed: missing point');return;}
+    const exists=state.lines.some(l=>(l.aId===aId&&l.bId===bId)||(l.aId===bId&&l.bId===aId));
+    if(exists){log('Line exists');return;}
+    const id=state.nextLineId++;
+    const angleDeg=(Math.atan2(b.x-a.x,b.y-a.y)*180/Math.PI);
+    state.lines.push({id,aId,bId,pivot:'A',lockedAngleDeg:null,initialAngleDeg:angleDeg});
+    log(`Line ${id} created between ${a.name} and ${b.name}`);
+    refresh();render();
+  }
+
+  function setLineAngle(A,B,newDeg,pivot){
+    if(!A||!B){log('setLineAngle aborted: missing point');return;}
+    const len=Math.hypot(B.x-A.x,B.y-A.y);if(len===0){log('setLineAngle aborted: zero length line');return;}
+    const rad=newDeg*Math.PI/180;
+    if(pivot==='A'){B.x=A.x+len*Math.sin(rad);B.y=A.y+len*Math.cos(rad);log(`Rotated ${A.name}-${B.name} around A to ${newDeg}°`);}
+    else{A.x=B.x-len*Math.sin(rad);A.y=B.y-len*Math.cos(rad);log(`Rotated ${A.name}-${B.name} around B to ${newDeg}°`);}
+    refresh();render();
+  }
+
+  function lockLineAngle(l,deg){l.lockedAngleDeg=deg;log(`Locked line ${l.id} angle at ${deg}° (pivot ${l.pivot})`);}
+  function wouldChangeLockedAngle(l){
+    const a=state.points.find(p=>p.id===l.aId),b=state.points.find(p=>p.id===l.bId);
+    if(!a||!b||l.lockedAngleDeg==null)return false;
+    const current=(Math.atan2(b.x-a.x,b.y-a.y)*180/Math.PI);
+    const diff=((current-l.lockedAngleDeg+540)%360)-180; // normalize to [-180,180]
+    return Math.abs(diff)>0.5;
+  }
+
+  function refresh(){
+    pointList.innerHTML='';
+    for(const p of state.points){
+      const row=document.createElement('div');row.className='item';
+      const name=document.createElement('input');name.value=p.name;
+      name.onchange=()=>{p.name=name.value;log(`Renamed point ${p.id} to ${p.name}`);refresh();render();};
+      const x=document.createElement('input');x.type='number';x.value=p.x.toFixed(1);
+      x.onchange=()=>{
+        const old=p.x;p.x=parseFloat(x.value);
+        if(checkAngleViolations(p.id)){p.x=old;log(`Error: change would break a locked angle involving ${p.name}`);}else{log(`Adjusted ${p.name} X=${p.x}`);}
+        refresh();render();
+      };
+      const y=document.createElement('input');y.type='number';y.value=p.y.toFixed(1);
+      y.onchange=()=>{
+        const old=p.y;p.y=parseFloat(y.value);
+        if(checkAngleViolations(p.id)){p.y=old;log(`Error: change would break a locked angle involving ${p.name}`);}else{log(`Adjusted ${p.name} Y=${p.y}`);}
+        refresh();render();
+      };
+      row.append(name,x,y);pointList.appendChild(row);
+    }
+    lineList.innerHTML='';
+    for(const l of state.lines){
+      const a=state.points.find(p=>p.id===l.aId),b=state.points.find(p=>p.id===l.bId);if(!a||!b)continue;
+      const row=document.createElement('div');row.className='item';
+      const label=document.createElement('span');label.textContent=`${a.name}-${b.name}`;
+      const angle=document.createElement('input');angle.type='number';
+      angle.value=(Math.atan2(b.x-a.x,b.y-a.y)*180/Math.PI).toFixed(1);
+      angle.onchange=()=>{
+        const val=parseFloat(angle.value);
+        if(l.lockedAngleDeg!=null){log(`Error: line ${l.id} angle is locked at ${l.lockedAngleDeg}°`);angle.value=l.lockedAngleDeg.toFixed(1);return;}
+        setLineAngle(a,b,val,l.pivot);
+      };
+      const pivotSel=document.createElement('select');['A','B'].forEach(opt=>{const o=document.createElement('option');o.value=opt;o.text=opt;pivotSel.appendChild(o);});
+      pivotSel.value=l.pivot;pivotSel.onchange=()=>{l.pivot=pivotSel.value;log(`Pivot for line ${l.id} set to ${l.pivot}`);};
+      const lockBtn=document.createElement('button');lockBtn.textContent='Lock';
+      lockBtn.onclick=()=>{const deg=parseFloat(angle.value);lockLineAngle(l,deg);};
+      const unlockBtn=document.createElement('button');unlockBtn.textContent='Unlock';
+      unlockBtn.onclick=()=>{l.lockedAngleDeg=null;log(`Unlocked line ${l.id} angle`);};
+      row.append(label,angle,pivotSel,lockBtn,unlockBtn);lineList.appendChild(row);
+    }
+  }
+
+  function render(){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const {x,y,scale}=state.viewport;ctx.setTransform(scale,0,0,scale,x,y);
+    for(const l of state.lines){
+      const a=state.points.find(p=>p.id===l.aId),b=state.points.find(p=>p.id===l.bId);if(!a||!b)continue;
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    }
+    for(const p of state.points){
+      ctx.beginPath();ctx.arc(p.x,p.y,5/Math.max(scale,0.5),0,Math.PI*2);
+      ctx.fillStyle='#2563eb';ctx.fill();ctx.fillText(p.name,p.x+8/scale,p.y+8/scale);
+    }
+  }
+
+  function checkAngleViolations(pointId){
+    // If moving this point would change any locked line angle, block
+    for(const l of state.lines){
+      if(l.lockedAngleDeg==null)continue;
+      if(l.aId===pointId||l.bId===pointId){
+        if(wouldChangeLockedAngle(l))return true;
+      }
+    }
+    return false;
+  }
+
+  // --- Canvas interactions: add/line/fix, move, pan, zoom ---
+  canvas.addEventListener('mousedown',e=>{
+    const {sx,sy}={sx:e.offsetX,sy:e.offsetY};
+    const {wx,wy}=screenToWorld(sx,sy);
+    const snap=Number(document.getElementById('snap').value)||10;
+    const near=state.points.find(p=>Math.hypot(p.x-wx,p.y-wy)<snap/Math.max(state.viewport.scale,0.5));
+    if(state.mode==='select' && near){
+      state.dragging.active=true;state.dragging.pointId=near.id;
+      state.dragging.startSX=sx;state.dragging.startSY=sy;
+      state.dragging.origX=near.x;state.dragging.origY=near.y;
+      log(`Start dragging ${near.name}`);
+    }else if(!near){
+      state.panning.active=true;state.panning.startSX=sx;state.panning.startSY=sy;
+      state.panning.origX=state.viewport.x;state.panning.origY=state.viewport.y;
+      log('Start panning');
+    }
+  });
+
+  canvas.addEventListener('mousemove',e=>{
+    const sx=e.offsetX,sy=e.offsetY;
+    if(state.dragging.active){
+      const p=state.points.find(pt=>pt.id===state.dragging.pointId);if(!p)return;
+      const {wx,wy}=screenToWorld(sx,sy);
+      const newX=wx,newY=wy;
+      const oldX=p.x,oldY=p.y;
+      p.x=newX;p.y=newY;
+      if(checkAngleViolations(p.id)){
+        p.x=oldX;p.y=oldY;
+        log(`Error: dragging would break a locked angle involving ${p.name}`);
+      }else{
+        refresh();render();
+        log(`Dragging ${p.name} to (${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+      }
+    }else if(state.panning.active){
+      const dx=sx-state.panning.startSX,dy=sy-state.panning.startSY;
+      state.viewport.x=state.panning.origX+dx;
+      state.viewport.y=state.panning.origY+dy;
+      render();
+    }
+  });
+
+  window.addEventListener('mouseup',()=>{
+    if(state.dragging.active){const p=state.points.find(pt=>pt.id===state.dragging.pointId);if(p)log(`Finished dragging ${p.name}`);}
+    if(state.panning.active)log('Finished panning');
+    state.dragging.active=false;state.dragging.pointId=null;
+    state.panning.active=false;
+  });
+
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const factor=e.deltaY<0?1.1:0.9;
+    const {scale,x,y}=state.viewport;
+    const mouse={sx:e.offsetX,sy:e.offsetY};
+    const before=screenToWorld(mouse.sx,mouse.sy);
+    const newScale=Math.max(0.2,Math.min(scale*factor,8));
+    state.viewport.scale=newScale;
+    const after=screenToWorld(mouse.sx,mouse.sy);
+    // keep world point under cursor fixed
+    state.viewport.x+= (mouse.sx - (before.wx*newScale)) - x;
+    state.viewport.y+= (mouse.sy - (before.wy*newScale)) - y;
+    render();
+    log(`Zoom ${factor>1?'in':'out'} to scale=${newScale.toFixed(2)}`);
+  },{passive:false});
+
+  canvas.addEventListener('click',e=>{
+    const {wx,wy}=screenToWorld(e.offsetX,e.offsetY);
+    if(state.mode==='add'){addPoint(wx,wy);}
+    else if(state.mode==='line'){
+      const snap=Number(document.getElementById('snap').value)||10;
+      const near=state.points.find(p=>Math.hypot(p.x-wx,p.y-wy)<snap/Math.max(state.viewport.scale,0.5));
+      if(!near)return;
+      if(!state.pending){state.pending=near.id;log(`Picked ${near.name} as first point for line`);}
+      else{addLine(state.pending,near.id);state.pending=null;}
+    }
+    else if(state.mode==='fixAngleABC'){
+      const snap=Number(document.getElementById('snap').value)||10;
+      const near=state.points.find(p=>Math.hypot(p.x-wx,p.y-wy)<snap/Math.max(state.viewport.scale,0.5));
+      if(!near)return;
+      state.fixClicks.push(near.id);log(`Picked ${near.name} for ∠ABC (${state.fixClicks.length}/3)`);
+      if(state.fixClicks.length===3){
+        const [AId,BId,CId]=state.fixClicks;
+        const A=state.points.find(p=>p.id===AId),B=state.points.find(p=>p.id===BId),C=state.points.find(p=>p.id===CId);
+        if(A&&B&&C){
+          const targetDeg=Number(document.getElementById('fixAngleABCValue').value)||45;
+          const theta=targetDeg*Math.PI/180;
+          const vBAx=A.x-B.x,vBAy=A.y-B.y;const lenBA=Math.hypot(vBAx,vBAy);
+          if(lenBA>0){
+            const ux=vBAx/lenBA,uy=vBAy/lenBA;
+            const rx=ux*Math.cos(theta)-uy*Math.sin(theta);
+            const ry=ux*Math.sin(theta)+uy*Math.cos(theta);
+            const lenBC=Math.hypot(C.x-B.x,C.y-B.y);
+            C.x=B.x+lenBC*rx;C.y=B.y+lenBC*ry;
+            log(`Fixed ∠ABC to ${targetDeg}° by moving ${C.name}`);
+          }
+        }
+        state.fixClicks=[];refresh();render();
+      }
+    }
+  });
+
+  // --- Controls ---
+  document.getElementById('mode').onchange=e=>{state.mode=e.target.value;state.pending=null;state.fixClicks=[];log(`Mode changed to ${state.mode}`);};
+  document.getElementById('reset').onclick=()=>{state.points=[];state.lines=[];state.nextPointId=1;state.nextLineId=1;state.pending=null;state.fixClicks=[];state.viewport={x:0,y:0,scale:1};refresh();render();log('Workspace reset');};
+
+  // --- Init ---
+  refresh();render();log('Initialized with angle locks, pan/zoom, and move');
+})();
+</script>
+</body>
+</html>

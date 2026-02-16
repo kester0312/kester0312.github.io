@@ -7,30 +7,7 @@
   text-align: center;
   text-decoration: none;
   outline: none;
-  color: #fff;
-  background-color: #ffff8e;
-  border: none;
-  border-radius: 15px;
-  box-shadow: 0 9px #6ff5ff;
-}
-
-.buttonstyle:hover {background-color: #ffff8e}
-
-.buttonstyle:active {
-  background-color: #ffff8e;
-  box-shadow: 0 5px #5bc9d1;
-  transform: translateY(4px);
-}
-
-.buttonstyle {
-  display: inline-block;
-  padding: 5px 20px;
-  font-size: 15px;
-  cursor: pointer;
-  text-align: center;
-  text-decoration: none;
-  outline: none;
-  color: #fff;
+  color: #008cff;
   background-color: #ffff8e;
   border: none;
   border-radius: 15px;
@@ -85,3 +62,18 @@
     border: none;
     border-radius: 15px;
   }
+/* Clean text links */
+.linkstyle {
+  text-decoration: none;   /* remove underline */
+  color: #333;             /* neutral text color */
+  font-size: 15px;
+  transition: transform 0.2s ease, color 0.3s ease;
+  display: inline-block;   /* needed for transform */
+  margin: 4px 0;
+}
+
+/* Hover effect: pop-up + color accent */
+.linkstyle:hover {
+  transform: scale(1.05);  /* slight zoom */
+  color: rgb(235,196,0);   /* yellow accent on hover */
+}
