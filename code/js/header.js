@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", function () {
         </a>
       </div>
     </header>
+    </br>
+    </br>
   `;
   document.body.insertAdjacentHTML("afterbegin", headerHTML);
 });
