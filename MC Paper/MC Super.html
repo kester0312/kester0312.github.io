@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <title>MC Answer Formatter with Ordering + Count</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
@@ -17,12 +17,14 @@
     .row { margin-top: 0.75rem; }
     .order-buttons button.active { background: #0078d7; color: white; }
     #count { margin-top: 0.5rem; font-weight: bold; }
+    #letterBreakdown { margin-top: 0.5rem; color: #555; font-size: 0.9rem; font-weight: normal; }
   </style>
 </head>
 <body>
-  
-  <script src="../code/js/header.js"></script>
+<script src="../code/js/header.js"></script>
 
+    </br>
+    </br>
   <h1>MC Answer Formatter</h1>
   <p>Type shorthand answers (e.g. <code>abcd</code>, <code>a/b/c/d</code>, <code>1a2b3c4d</code>, <code>3.A 5.B 4.C 2.A 1.A</code>) and click Format.</p>
 
@@ -44,13 +46,14 @@
 
   <label for="output" style="margin-top:1rem; display:block;">Output</label>
   <input id="output" class="output" type="text" readonly placeholder="A|B|C|" />
+  
+  <div id="letterBreakdown">MC No. count: </div>
   <div id="count">Total answers: 0</div>
 
   <script>
-    let orderMode = "asc"; // default
+    let orderMode = "asc"; 
 
     function extractPairs(text) {
-      // Match patterns like "3.A", "2 B", "1a", etc.
       const regex = /(\d+)?\s*\.?\s*([a-zA-Z])/g;
       const pairs = [];
       let m;
@@ -76,7 +79,7 @@
           return b.num - a.num;
         });
       } else {
-        return pairs; // original order
+        return pairs;
       }
     }
 
@@ -89,27 +92,61 @@
       const pairs = extractPairs(input);
       const ordered = orderPairs(pairs);
       const output = toPipeFormat(ordered);
+      
       document.getElementById("output").value = output;
       document.getElementById("count").textContent = "Total answers: " + ordered.length;
+
+      // Logic for MC Letter Counts
+      const counts = {};
+      ordered.forEach(p => {
+        counts[p.letter] = (counts[p.letter] || 0) + 1;
+      });
+
+      const sortedLetters = Object.keys(counts).sort();
+      const breakdownText = sortedLetters
+        .map(letter => `${letter}:${counts[letter]}`)
+        .join(" , ");
+
+      document.getElementById("letterBreakdown").textContent = "MC No. count: " + (breakdownText || "");
     }
 
+    // --- Robust Copy Logic ---
+    function fallbackCopyTextToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        alert('Output copied to clipboard.');
+      } catch (err) {
+        alert('Fallback: Unable to copy. Please select manually.');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    document.getElementById("copyBtn").addEventListener("click", () => {
+      const text = document.getElementById("output").value;
+      if (!navigator.clipboard) {
+        fallbackCopyTextToClipboard(text);
+        return;
+      }
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Output copied to clipboard.");
+      }, (err) => {
+        fallbackCopyTextToClipboard(text);
+      });
+    });
+
     document.getElementById("formatBtn").addEventListener("click", formatInput);
+    
     document.getElementById("clearBtn").addEventListener("click", () => {
       document.getElementById("input").value = "";
       document.getElementById("output").value = "";
       document.getElementById("count").textContent = "Total answers: 0";
-    });
-    document.getElementById("copyBtn").addEventListener("click", async () => {
-      const out = document.getElementById("output").value;
-      try {
-        await navigator.clipboard.writeText(out);
-        alert("Output copied to clipboard.");
-      } catch {
-        alert("Copy failed. Please select and copy manually.");
-      }
+      document.getElementById("letterBreakdown").textContent = "MC No. count: ";
     });
 
-    // Order buttons
     function setOrder(mode) {
       orderMode = mode;
       document.querySelectorAll(".order-buttons button").forEach(btn => btn.classList.remove("active"));
@@ -123,7 +160,6 @@
     document.getElementById("descBtn").addEventListener("click", () => setOrder("desc"));
     document.getElementById("origBtn").addEventListener("click", () => setOrder("orig"));
 
-    // Live formatting
     document.getElementById("input").addEventListener("input", formatInput);
   </script>
 </body>

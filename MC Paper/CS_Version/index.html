@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MC Paper System</title>
+    <style>
+        /* --- 1. GLOBAL LAYOUT --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .viewport {
+            flex: 1;
+            overflow: auto;
+            background: #1a1a1a;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+        }
+
+        canvas {
+            background: white;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+            transform-origin: top center;
+            cursor: crosshair;
+        }
+
+        #hoverCoord {
+            position: fixed;
+            background: #000;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+            font-size: 11px;
+            z-index: 1000;
+            display: none;
+        }
+
+        /* --- 2. SIDEBAR & PANELS --- */
+        .sidebar {
+            left: 0;
+            top: 0;
+            bottom: 0;
+
+            /* 1. Set a bigger default width (e.g., 450px instead of 320px) */
+            width: 450px;
+            min-width: 300px;
+            /* Prevents it from getting too small */
+            max-width: 80vw;
+            /* Prevents it from covering the whole screen */
+
+            /* 2. Enable manual resizing */
+            resize: horizontal;
+            overflow: auto;
+            /* Required for 'resize' to work */
+
+            background: #2c3e50;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+            z-index: 100;
+            border-right: 4px solid #34495e;
+            /* Visual hint for the draggable edge */
+
+            /* ... your other styles ... */
+            border-right: 5px solid #1a252f;
+            /* Darker edge acts as a visual handle */
+            transition: background 0.2s;
+        }
+
+        .sidebar:hover {
+            border-right-color: #1d5377;
+            /* Glows blue when you hover near the edge */
+        }
+
+        .header {
+            padding: 15px 20px;
+            background: #2c3e50;
+            color: white;
+        }
+
+        .probe-panel {
+            background: #1a252f;
+            color: #ecf0f1;
+            padding: 12px;
+            margin: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            border-left: 5px solid #3498db;
+        }
+
+        .probe-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            margin: 2px 0;
+        }
+
+        .probe-row .val {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+
+        /* --- 3. CONTROLS & INPUTS --- */
+        .controls {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            /* Adds nice spacing between your sliders */
+            overflow-y: auto;
+            /* Adds a scrollbar if your screen is too small */
+        }
+
+        .input-group-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-paste {
+            background: #8e44ad;
+            flex: 1.2;
+            font-size: 0.85em;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-answer {
+            background: #d35400;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 0;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.8em;
+            width: 100%;
+        }
+
+        .file-label {
+            flex: 1;
+            background: #34495e;
+            color: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.75em;
+            cursor: pointer;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .json-label {
+            display: block;
+            width: 100%;
+            background: #95a5a6;
+            color: white;
+            padding: 8px 0;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85em;
+            background: #f8f9fa;
+            padding: 6px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        input[type="range"] {
+            width: 110px;
+            cursor: pointer;
+            accent-color: #3498db;
+        }
+
+        /* Standard Sidebar Buttons */
+        .controls button:not(.btn-paste):not(.btn-answer):not(.btn-reset) {
+            padding: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            color: white;
+            background: #3498db;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        /* --- 4. RESULTS TABLE & BUBBLES --- */
+        .results-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+
+        .log-section {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .log-header {
+            background: #34495e;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: white;
+        }
+
+        .q-row {
+            display: flex !important;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 15px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .q-left-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .q-name {
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 0.85em;
+        }
+
+        .bubble-set {
+            display: flex;
+            flex-direction: row;
+            gap: 4px;
+        }
+
+        .bubble-item {
+            display: flex;
+            flex-direction: column;
+            /* Change 'row' back to 'column' */
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            /* Set a fixed width again */
+            height: auto;
+            /* Let it grow vertically */
+            padding: 5px 0;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #718096;
+            font-size: 0.7em;
+        }
+
+        /* Bubble States */
+        .is-correct {
+            background: #48bb78 !important;
+            color: white !important;
+            border-color: #2f855a !important;
+        }
+
+        .is-wrong {
+            background: #f56565 !important;
+            color: white !important;
+            border-color: #c53030 !important;
+        }
+
+        .is-multiple {
+            background: #4299e1 !important;
+            color: white !important;
+            border-color: #2b6cb0 !important;
+        }
+
+        .is-other-filled {
+            background: #f1c40f !important;
+            color: #2c3e50 !important;
+            border-color: #d4ac0d !important;
+            font-weight: bold;
+        }
+
+        /* --- 5. RESET BUTTON (KEPT AS REQUESTED) --- */
+        .btn-reset {
+            width: 60px;
+            height: 24px;
+            background: #f1f2f6;
+            color: #7f8c8d;
+            border: 1px solid #dcdde1;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .btn-reset:hover {
+            background-color: #edf2f7;
+            /* Light gray instead of red */
+            color: #2d3748;
+            border-color: #cbd5e0;
+        }
+
+        /* --- 6. MODAL & STATS --- */
+        #modalOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        #resultsModal {
+            background: white;
+            width: 85%;
+            height: 85%;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 15px 25px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .close-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .stats-container {
+            display: flex;
+            align-items: stretch;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: #fff;
+            padding: 5px;
+            overflow-x: auto;
+        }
+
+        .stats-group {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .stats-divider {
+            width: 2px;
+            background: #cbd5e0;
+            margin: 0 5px;
+            border-radius: 2px;
+        }
+
+        .stat-card {
+            min-width: 100px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            flex: 1;
+        }
+
+        .stat-val {
+            font-size: 1.4em;
+            font-weight: bold;
+            display: block;
+            margin-top: 4px;
+            white-space: nowrap;
+        }
+
+        .stat-lbl {
+            font-size: 0.65em;
+            text-transform: uppercase;
+            color: #666;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 2.4em;
+        }
+
+        /* --- 7. TOGGLE SWITCH --- */
+        .personal-switch {
+            position: relative;
+            display: inline-block;
+            width: 38px;
+            height: 20px;
+        }
+
+        .personal-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* 1. Inactive State (Keep a neutral color like light grey or light blue) */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            /* Changed to grey to make the Blue 'On' pop */
+            transition: .1s;
+            border-radius: 20px;
+            border: 1px solid #fff;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 2px;
+            background-color: white;
+            transition: .1s;
+            border-radius: 50%;
+        }
+
+        /* 2. Active State (CHANGE THIS TO BLUE) */
+        input:checked+.slider {
+            background-color: #3498db;
+            /* Professional Blue */
+        }
+
+        /* 3. Movement (Keep this as is) */
+        input:checked+.slider:before {
+            transform: translateX(18px);
+        }
+
+        .bubble-item.is-other-filled {
+            background-color: #f6e05e !important;
+            /* Yellow */
+            border-color: #ecc94b !important;
+            color: #744210 !important;
+        }
+
+        /* Normal state hover */
+        .btn-reset:hover {
+            background-color: #edf2f7;
+        }
+
+        /* Optional: If you want a specific red-hover when it's modified */
+        .btn-reset[style*="background-color: rgb(245, 101, 101)"]:hover {
+            background-color: #e53e3e !important;
+            /* Slightly darker red */
+        }
+
+
+
+
+        /* Ensure the area where the table was remains white */
+        body {
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* The main wrapper for your app */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            /* Fill the full height of the screen */
+            background-color: white;
+        }
+
+        /* The area containing your canvas and controls */
+        .control-panel {
+            flex-grow: 1;
+            /* This tells the panel to take up all available space */
+            padding: 20px;
+            overflow-y: auto;
+            /* Adds a scrollbar ONLY if your content is huge */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .canvas-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 400px;
+            /* Adjust based on your preference */
+            background: #f7fafc;
+            /* Light grey so you can see the canvas boundaries */
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        /* When the switch is Blue (Checked) */
+        .personal-switch input:checked+.slider {
+            background-color: #3498db;
+            /* Blue color */
+        }
+
+        /* Style for the joined text result */
+        .condensed-val {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #2c3e50;
+            padding-left: 20px;
+            letter-spacing: 2px;
+        }
+
+        /* Ensure the label and value sit nicely together */
+        .q-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Style for the Condensed Text */
+        .condensed-val {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.3em;
+            color: #3498db;
+            /* Blue */
+            margin-left: 20px;
+            letter-spacing: 3px;
+        }
+
+        /* The Switch Style */
+        .personal-switch input:checked+.slider {
+            background-color: #3498db;
+        }
+
+        /* Hide background table properly when modal is open */
+        #resultsTable {
+            display: none !important;
+        }
+
+        #canvas-wrapper {
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            /* This makes the children go horizontal */
+            flex-direction: row;
+            /* This is the default, but good to know */
+            gap: 10px;
+            /* Adds space between the boxes */
+        }
+
+        .box {
+            display: flex;
+            /* Make the box itself a flex container */
+            align-items: center;
+            /* Aligns content vertically in the middle */
+            justify-content: center;
+            /* Aligns content horizontally in the center (optional) */
+
+        }
+        /* New style for the correct answer's border */
+.bubble-item.is-answer-key {
+    border: 2px solid #2ecc71 !important;
+    background-color: rgba(46, 204, 113, 0.05); /* Very light green tint */
+}
+
+/* Ensure the border doesn't shift layout */
+.bubble-item {
+    box-sizing: border-box;
+}
+    </style>
+</head>
+
+<body>
+
+
+    </br>
+    </br>
+    <div id="modalOverlay">
+        <div id="resultsModal">
+            <div class="modal-header">
+                <h2 style="margin:0; font-size: 1.1em; color: #2c3e50;">MC Analyze</h2>
+                <button class="close-btn" onclick="toggleModal(false)">Close</button>
+            </div>
+            <div id="modalBody" class="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="hoverCoord">0.00, 0.00</div>
+
+    <div class="sidebar">
+        <a class="container" href="../../index.html" class="logo" title="麥塊藍月光">
+            <img src="../../favicon.ico" width=50 alt="Logo">
+            <h3 style="margin:0;color: #ffffff;" class="box">MC Paper System</h3>
+        </a>
+
+        <div class="probe-panel">
+            <div style="font-size: 0.7em; color: #bdc3c7; margin-bottom: 5px;">LIVE POINT SENSOR:</div>
+            <div class="probe-row"><span>JSON Pos:</span> <span id="pCoord" class="val">0.00, 0.00</span></div>
+            <div class="probe-row"><span>Brightness:</span> <span id="pBright" class="val">--</span></div>
+            <div class="probe-row"><span>State:</span> <span id="pState" class="val">--</span></div>
+        </div>
+
+        <div class="controls">
+            <div class="input-group-row">
+                <button class="btn-paste" onclick="pasteImage()">📋 PASTE CLIPBOARD</button>
+                <label class="file-label">📁 OPEN IMAGE<input type="file" id="upload" accept="image/*"></label>
+            </div>
+            <label class="json-label">📄 IMPORT CONFIG (.JSON)<input type="file" id="jsonInput" accept=".json"></label>
+
+            <button class="btn-answer" onclick="pasteAnswerKey()">🎯 PASTE ANSWER KEY</button>
+
+            <div class="setting-row"><span>Zoom: <b id="zoomLabel">100</b>%</span><input type="range" id="zoomRange"
+                    min="10" max="200" value="100"></div>
+            <div class="setting-row"><span>Search: <b id="searchLabel">4</b>%</span><input type="range" id="searchRange"
+                    min="1" max="15" value="4"></div>
+            <div class="setting-row"><span>Ink Needed: <b id="inkLabel">20</b>%</span><input type="range"
+                    id="inkThreshold" min="1" max="100" value="20"></div>
+            <div class="setting-row"><span>Box: <b id="sizeLabel">0.50</b>x</span><input type="range" id="sizeRange"
+                    min="0.05" max="1.0" step="0.01" value="0.50"></div>
+
+            <button onclick="processAllGroups()">🔄 RE-SCAN SHEET</button>
+            <button style="background:#27ae60" onclick="toggleModal(true)">📊 VIEW RESULTS</button>
+        </div>
+        <div id="resultsTable" class="results-container"></div>
+    </div>
+
+    <div class="viewport"><canvas id="canvas"></canvas></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const resultsTable = document.getElementById('resultsTable');
+        const modalBody = document.getElementById('modalBody');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const hoverTip = document.getElementById('hoverCoord');
+        let originalImg = null, configData = null;
+        let answerKey = [];
+
+        let mcStats = { correct: 0, wrong: 0, multiple: 0, blank: 0, total: 0, excluded: 0 };
+
+        let isPrivacyChecked = false; // MUST be at the top of your <script>
+        async function pasteAnswerKey() {
+            let text = "";
+            try {
+                // Try automatic clipboard first
+                text = await navigator.clipboard.readText();
+            } catch (err) {
+                // Fallback to manual prompt if blocked
+                text = window.prompt("Clipboard blocked. Please paste your Answer Key (e.g. A|B|C) here:");
+            }
+
+            if (text && text.trim().length > 0) {
+                answerKey = text.split('|').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
+                processAllGroups();
+            }
+        }
+
+        async function pasteImage() {
+            try {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    // Handle actual Image files
+                    if (item.types.some(t => t.startsWith('image/'))) {
+                        const type = item.types.find(t => t.startsWith('image/'));
+                        const blob = await item.getType(type);
+                        loadImage(URL.createObjectURL(blob));
+                        return;
+                    }
+                    // Handle Image Data URLs copied as text
+                    if (item.types.includes('text/plain')) {
+                        const text = await (await item.getType('text/plain')).text();
+                        if (text.trim().startsWith('data:image')) {
+                            loadImage(text.trim());
+                            return;
+                        }
+                    }
+                }
+            } catch (err) {
+                // Fallback: Ask user to paste the Data URL manually
+                const manualLink = window.prompt("Clipboard error. Please paste the Image URL or Base64 Data String here:");
+                if (manualLink && manualLink.trim().startsWith('data:image')) {
+                    loadImage(manualLink.trim());
+                } else if (manualLink) {
+                    alert("Invalid image data format.");
+                }
+            }
+        }
+
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const files = Array.from(e.dataTransfer.files);
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) loadImage(URL.createObjectURL(file));
+                else if (file.name.endsWith('.json')) {
+                    const reader = new FileReader();
+                    reader.onload = (f) => loadJSON(f.target.result);
+                    reader.readAsText(file);
+                }
+            });
+        });
+
+        function loadImage(src) {
+            originalImg = new Image();
+            originalImg.onload = () => {
+                canvas.width = originalImg.width;
+                canvas.height = originalImg.height;
+                ctx.drawImage(originalImg, 0, 0);
+
+                // --- NEW AUTO-ZOOM LOGIC START ---
+                // 1. Find the container (assuming it's the parent of your canvas)
+                const container = canvas.parentElement;
+                const padding = 40; // Space to leave around the edges
+
+                // 2. Calculate the ratio
+                const availableW = container.clientWidth - padding;
+                const availableH = container.clientHeight - padding;
+
+                const ratioW = availableW / originalImg.width;
+                const ratioH = availableH / originalImg.height;
+
+                // 3. Pick the smaller ratio and cap at 100% (1.0)
+                let autoZoom = Math.min(ratioW, ratioH);
+                if (autoZoom > 1) autoZoom = 1;
+
+                // 4. Apply to your slider and canvas
+                const zoomSlider = document.getElementById('zoomRange');
+                if (zoomSlider) {
+                    const zoomPercent = Math.round(autoZoom * 100);
+                    zoomSlider.value = zoomPercent;
+                    // Update the label if you have one
+                    const zoomLabel = document.getElementById('zoomLabel');
+                    if (zoomLabel) zoomLabel.innerText = zoomPercent;
+
+                    // Apply the actual CSS transform
+                    canvas.style.transform = `scale(${autoZoom})`;
+                }
+                // --- NEW AUTO-ZOOM LOGIC END ---
+
+                processAllGroups();
+            };
+            originalImg.src = src;
+        }
+        function loadJSON(str) {
+            try {
+                configData = JSON.parse(str);
+                if (configData.Setting) {
+                    updateSlider('searchRange', configData.Setting.Search_Area || 4);
+                    updateSlider('inkThreshold', configData.Setting.Ink_Threshold || 20);
+                    updateSlider('sizeRange', configData.Setting.Box_Scale || 0.5);
+                }
+                // Automatically build the table inside resultsTable immediately
+                processAllGroups();
+            } catch (e) {
+                alert("Invalid JSON file.");
+            }
+        }
+        function toggleModal(show) {
+            const backgroundTable = document.getElementById('resultsTable');
+
+            if (show) {
+                // Force a recalculation so manual clicks are counted before the modal opens
+                recalculateMCStats();
+
+                const totalDenom = mcStats.total || 1;
+                const corrPct = (mcStats.correct / totalDenom * 100).toFixed(1);
+                const wrongPct = ((mcStats.wrong + mcStats.multiple + mcStats.blank) / totalDenom * 100).toFixed(1);
+                const wrongExPct = (mcStats.wrong / totalDenom * 100).toFixed(1);
+
+                modalBody.innerHTML = `
+            <div class="stats-container" style="font-family: Arial, sans-serif !important; text-transform: none !important;">
+                <div class="stats-group" style="background: #fff9c4; padding: 10px; border-radius: 12px; border: 2px solid #fbc02d; margin-right: 5px;">
+                    <div class="stat-card" style="border-bottom: 4px solid #48bb78"><span class="stat-lbl" style="text-transform: none !important;">Correct Ans</span><span class="stat-val">${mcStats.correct}</span></div>
+                    <div class="stat-card" style="border-bottom: 4px solid #f56565"><span class="stat-lbl" style="text-transform: none !important;">Wrong Ans</span><span class="stat-val">${mcStats.wrong}</span></div>
+                </div>
+                
+                <div class="stats-group" style="background: #ffffff; padding: 10px 0px; border-radius: 12px; border: 2px solid #ffffff;">
+                    <div class="stat-card" style="border-bottom: 4px solid #4299e1"><span class="stat-lbl" style="text-transform: none !important;">Multiple Ans</span><span class="stat-val">${mcStats.multiple}</span></div>
+                    <div class="stat-card" style="border-bottom: 4px solid #95a5a6"><span class="stat-lbl" style="text-transform: none !important;">Blank Ans</span><span class="stat-val">${mcStats.blank}</span></div>
+                </div>
+                
+                <div class="stats-divider"></div>
+                
+                <div class="stats-group" style="background: #ffffff; padding: 10px 0px; border-radius: 12px; border: 2px solid #ffffff;">
+                    <div class="stat-card" style="border-bottom: 4px solid #2c3e50"><span class="stat-lbl" style="text-transform: none !important;">Total Q No.</span><span class="stat-val">${mcStats.total}</span></div>
+                    <div class="stat-card" style="border-bottom: 4px solid #f1c40f"><span class="stat-lbl" style="text-transform: none !important;">Excl. Ans</span><span class="stat-val">${mcStats.excluded}</span></div>
+                </div>
+                
+                <div class="stats-divider"></div>
+                
+                <div class="stats-group" style="background: #fff9c4; padding: 10px; border-radius: 12px; border: 2px solid #fbc02d;">
+                    <div class="stat-card" style="border-bottom: 4px solid #48bb78"><span class="stat-lbl">Correct %</span><span class="stat-val" style="color:#2f855a">${corrPct}%</span></div>
+                    <div class="stat-card" style="border-bottom: 4px solid #f56565"><span class="stat-lbl">Wrong %</span><span class="stat-val" style="color:#c53030">${wrongPct}%</span></div>
+                </div>
+                
+                <div class="stats-divider"></div>
+                
+                <div class="stats-group" style="background: #ffffff; padding: 10px 0px; border-radius: 12px; border: 2px solid #ffffff;">
+                    <div class="stat-card" style="border-bottom: 4px solid #4299e1"><span class="stat-lbl" style="text-transform: none !important;">Wrong % Excl. Errors</span><span class="stat-val" style="color:#2b6cb0">${wrongExPct}%</span></div>
+                </div>
+            </div>
+            <div id="table-wrapper" style="margin-top:20px; position: relative;">
+                ${resultsTable.innerHTML}
+            </div>
+        `;
+
+
+                // Check for modified rows for Red Button UI
+                modalBody.querySelectorAll('.q-row').forEach(row => {
+                    const bubbles = row.querySelectorAll('.bubble-item');
+                    const resetBtn = row.querySelector('.btn-reset');
+                    if (!resetBtn) return;
+
+                    let isModified = false;
+                    bubbles.forEach(b => {
+                        if (b.className !== b.getAttribute('data-original-class')) isModified = true;
+                    });
+
+                    if (isModified) {
+                        resetBtn.style.backgroundColor = "#f56565";
+                        resetBtn.style.color = "white";
+                        resetBtn.style.borderColor = "#c53030";
+                    }
+                });
+
+                // Personal Info Switch Logic
+                const headers = modalBody.querySelectorAll('.log-header');
+                headers.forEach(h => {
+                    if (h.innerText.trim() === "Personal Information") {
+                        h.style.display = "flex";
+                        h.style.justifyContent = "space-between";
+                        h.style.alignItems = "center";
+                        h.innerHTML = `<span>Personal Information</span><label class="personal-switch"><input type="checkbox" id="personalToggle"><span class="slider"></span></label>`;
+                    }
+                });
+                const personalToggle = document.getElementById('personalToggle');
+                if (personalToggle) {
+                    personalToggle.addEventListener('change', function () {
+                        // 1. Initial Log to confirm it's working
+                        console.log("Switch State:", this.checked ? "ON (Blue Mode)" : "OFF (Green Mode)");
+
+                        const modal = document.getElementById('modalBody');
+                        const allRows = modal.querySelectorAll('.q-row');
+                        let joinedData = {};
+
+                        // 2. Always clear old temporary rows first
+                        modal.querySelectorAll('.temp-joined-row').forEach(tr => tr.remove());
+
+                        allRows.forEach(row => {
+                            let isPersonalZone = false;
+                            let prev = row.previousElementSibling;
+
+                            while (prev) {
+                                if (prev.classList.contains('log-header')) {
+                                    isPersonalZone = prev.innerText.includes("Personal Information");
+                                    // ADD THIS LINE HERE:
+                                    console.log("Row context:", row.querySelector('.q-label')?.innerText, "In Personal Zone?", isPersonalZone);
+                                    break;
+                                }
+                                prev = prev.previousElementSibling;
+                            }
+
+                            if (isPersonalZone) {
+                                const labelElement = row.querySelector('.q-label');
+                                const label = labelElement ? labelElement.innerText.trim() : "";
+                                const bubbleGroup = row.querySelector('.bubble-group');
+                                // ADD THIS LINE HERE:
+                                console.log("Found bubbleGroup for this row?", !!bubbleGroup);
+                                if (this.checked) {
+                                    // --- BLUE MODE (Show Values) ---
+                                    let filled = [];
+                                    row.querySelectorAll('.bubble-item.filled').forEach(b => filled.push(b.innerText));
+                                    let val = (filled.length > 0) ? filled.join("") : "/";
+
+                                    if (label.includes('(?)')) {
+                                        let base = label.split(' (?)')[0];
+                                        if (!joinedData[base]) joinedData[base] = "";
+                                        joinedData[base] += (val === "/" ? "" : val);
+                                        row.style.display = 'none'; // Hide individual bubble rows
+                                    } else {
+                                        if (bubbleGroup) bubbleGroup.style.display = 'none';
+                                        let v = row.querySelector('.condensed-val') || document.createElement('div');
+                                        v.className = 'condensed-val';
+                                        v.style.color = "#3498db";
+                                        v.innerText = val;
+                                        if (!row.querySelector('.condensed-val')) row.appendChild(v);
+                                        v.style.display = 'block';
+                                    }
+                                } else {
+                                    // --- GREEN MODE (Show Bubbles) ---
+                                    row.style.display = 'flex';
+                                    if (bubbleGroup) bubbleGroup.style.display = 'flex';
+                                    const v = row.querySelector('.condensed-val');
+                                    if (v) v.style.display = 'none';
+                                }
+                            }
+                        });
+
+                        // 3. Inject the joined data (e.g., Class No. 12)
+                        if (this.checked) {
+                            for (let key in joinedData) {
+                                const newRow = document.createElement('div');
+                                newRow.className = 'q-row temp-joined-row';
+                                newRow.style.cssText = "display: flex; justify-content: space-between; padding: 5px 10px;";
+                                newRow.innerHTML = `
+                    <div class="q-label">${key}</div>
+                    <div class="condensed-val" style="color:#3498db; font-weight:bold; font-size:1.2em;">
+                        ${joinedData[key] || "/"}
+                    </div>`;
+
+                                const header = Array.from(modal.querySelectorAll('.log-header'))
+                                    .find(h => h.innerText.includes('Personal Information'));
+                                if (header) header.after(newRow);
+                            }
+                        }
+                    });
+                }
+            } else {
+                // 2. RESTORE the background table when closing the panel
+                if (backgroundTable) backgroundTable.style.display = 'block';
+            }
+
+            modalOverlay.style.display = show ? 'flex' : 'none';
+        }
+        function updateSlider(id, val) {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+            const lbl = id.replace('Range', 'Label').replace('Threshold', 'Label');
+            document.getElementById(lbl).innerText = val;
+        }
+
+        document.getElementById('upload').onchange = (e) => loadImage(URL.createObjectURL(e.target.files[0]));
+        document.getElementById('jsonInput').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (f) => loadJSON(f.target.result);
+            reader.readAsText(e.target.files[0]);
+        };
+
+        ['zoomRange', 'searchRange', 'inkThreshold', 'sizeRange'].forEach(id => {
+            document.getElementById(id).oninput = (e) => {
+                updateSlider(id, e.target.value);
+                if (id === 'zoomRange') canvas.style.transform = `scale(${e.target.value / 100})`;
+                else processAllGroups();
+            };
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!originalImg) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
+            const p = ctx.getImageData(x, y, 1, 1).data;
+            const b = Math.round((p[0] + p[1] + p[2]) / 3);
+            const coordStr = `${(x / canvas.width * 100).toFixed(2)}, ${(y / canvas.height * 100).toFixed(2)}`;
+            document.getElementById('pCoord').innerText = coordStr;
+            document.getElementById('pBright').innerText = b;
+            document.getElementById('pState').innerText = b > 240 ? "WHITE" : (b < 35 ? "BLACK" : "GREY");
+            navigator.clipboard.writeText(`"${coordStr}"`);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!originalImg) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            hoverTip.style.display = 'block';
+            hoverTip.style.left = (e.clientX + 15) + 'px'; hoverTip.style.top = (e.clientY + 15) + 'px';
+            hoverTip.innerText = `${(x / canvas.width * 100).toFixed(2)}, ${(y / canvas.height * 100).toFixed(2)}`;
+        });
+
+
+        function processAllGroups() {
+            if (!configData) return;
+            if (originalImg) ctx.drawImage(originalImg, 0, 0);
+
+            resultsTable.innerHTML = "";
+            mcStats = { correct: 0, wrong: 0, multiple: 0, blank: 0, total: 0, excluded: 0 };
+            let mcCounter = 0;
+
+            for (const sectionName in configData) {
+                if (["Setting", "Definitions"].includes(sectionName)) continue;
+
+                const isMC = (sectionName === "MC");
+                const sectionData = configData[sectionName];
+
+                const sectionBox = document.createElement('div');
+                sectionBox.className = 'log-section';
+                sectionBox.innerHTML = `<div class="log-header"><span>${sectionName}</span></div>`;
+
+                const columnContainer = document.createElement('div');
+                columnContainer.style.display = "flex";
+
+                // Core processing for every row
+                const createRow = (qKey, arr, target) => {
+                    if (qKey.startsWith("!")) return;
+                    if (!Array.isArray(arr)) return;
+
+                    const rule = arr[arr.length - 1];
+                    const coords = arr.slice(0, -1);
+                    let detected = [], rowBubbles = [];
+
+                    coords.forEach((pos, i) => {
+                        let res = { filled: false, ink: 0 };
+                        if (originalImg) {
+                            const [px, py] = pos.split(',').map(n => parseFloat(n) / 100);
+                            res = analyze(px * canvas.width, py * canvas.height);
+                        }
+
+                        // --- FIXED: SPLIT BY PIPE FOR EACH BUBBLE ---
+                        let label = "";
+                        if (rule.includes("|")) {
+                            // Split the entire rule by "|"
+                            // Example: ["LetterCustom", "V", "J", "M", "S", "A"]
+                            const parts = rule.split('|');
+
+                            // The custom labels start from index 1, 2, 3...
+                            // So for bubble i, we look at parts[i + 1]
+                            if (parts[i + 1] !== undefined && parts[i + 1] !== "") {
+                                label = parts[i + 1];
+                            } else {
+                                // Fallback to standard alphabet if the pipe list runs out
+                                label = String.fromCharCode(65 + i);
+                            }
+                        } else {
+                            // Standard Rules (No pipe symbol)
+                            label = rule === "Letter" ? String.fromCharCode(65 + i) :
+                                (rule === "Number_Non_0" ? i + 1 :
+                                    (rule === "Number_Start_Non_0" ? (i === 9 ? 0 : i + 1) : i));
+                        }
+                        // --------------------------------------------
+
+
+                        const labelStr = label.toString().toUpperCase();
+                        if (res.filled) detected.push(labelStr);
+                        rowBubbles.push({ label: labelStr, res });
+                    });
+
+                    if (isMC) {
+                        if (mcCounter < answerKey.length) {
+                            mcStats.total++;
+                            if (!detected.length) mcStats.blank++;
+                            else if (detected.length > 1) mcStats.multiple++;
+                            else (detected[0] === answerKey[mcCounter]) ? mcStats.correct++ : mcStats.wrong++;
+                        } else mcStats.excluded++;
+                    }
+
+                    const qRow = document.createElement('div');
+                    qRow.className = 'q-row';
+
+// 1. Build Bubble HTML and detect if modified
+let rowBubblesHtml = "";
+rowBubbles.forEach(item => {
+    let cls = "bubble-item";
+    
+    // Add border if it matches the answer key
+    if (isMC && mcCounter < answerKey.length && item.label === answerKey[mcCounter]) {
+        cls += " is-answer-key";
+    }
+
+    if (isMC && mcCounter < answerKey.length) {
+        if (detected.length > 1 && item.res.filled) cls += " is-multiple";
+        else if (detected.length === 1 && item.res.filled) {
+            cls += (item.label === answerKey[mcCounter]) ? " is-correct" : " is-wrong";
+        }
+    } else if (item.res.filled) {
+        cls += " is-other-filled";
+    }
+
+    rowBubblesHtml += `
+        <div class="${cls}" 
+             data-original-class="${cls}" 
+             onclick="manualFix(this, '${item.label}', '${qKey}')">
+            <span style="font-weight:bold;">${item.label}</span>
+            <span style="font-size:8px; opacity:0.8;">${Math.round(item.res.ink * 100)}%</span>
+        </div>`;
+});
+
+                    // 2. Logic for the Reset Button Appearance
+                    let rowHtml = `
+        <div class="q-left-content">
+            <div class="q-name" style="min-width: ${isMC ? '35px' : '75px'}">${qKey}</div>
+            <div class="bubble-set">${rowBubblesHtml}</div>
+        </div>
+        <button class="btn-reset" onclick="
+            const row = this.closest('.q-row');
+            const bubbles = row.querySelectorAll('.bubble-item');
+            
+            bubbles.forEach(b => { b.className = b.getAttribute('data-original-class'); });
+
+            this.style.backgroundColor = '';
+            this.style.color = '';
+            this.style.borderColor = '';
+            this.innerText = 'Reset';
+
+            const sourceSection = Array.from(resultsTable.querySelectorAll('.log-section'))
+                .find(s => s.querySelector('.log-header').innerText.trim() === '${sectionName}');
+            if (sourceSection) {
+                const sourceRow = Array.from(sourceSection.querySelectorAll('.q-row'))
+                    .find(r => r.querySelector('.q-name').innerText === '${qKey}');
+                if (sourceRow) {
+                    const sourceBubbles = sourceRow.querySelectorAll('.bubble-item');
+                    bubbles.forEach((mb, idx) => { sourceBubbles[idx].className = mb.className; });
+                }
+            }
+            recalculateMCStats();
+        ">Reset</button>`;
+
+                    qRow.innerHTML = rowHtml;
+                    target.appendChild(qRow);
+
+                    if (isMC) mcCounter++;
+                };
+                // Handle Column detection (Nested objects vs Flat list)
+                const hasColumns = Object.keys(sectionData).some(k => !k.startsWith("!") && sectionData[k] && typeof sectionData[k] === 'object' && !Array.isArray(sectionData[k]));
+
+                if (hasColumns) {
+                    for (const colKey in sectionData) {
+                        if (colKey.startsWith("!")) continue;
+                        const colDiv = document.createElement('div');
+                        colDiv.style.flex = "1";
+                        colDiv.style.borderRight = "1px solid #edf2f7";
+                        for (const qKey in sectionData[colKey]) {
+                            createRow(qKey, sectionData[colKey][qKey], colDiv);
+                        }
+                        columnContainer.appendChild(colDiv);
+                    }
+                } else {
+                    const soloCol = document.createElement('div');
+                    soloCol.style.flex = "1";
+                    for (const qKey in sectionData) {
+                        createRow(qKey, sectionData[qKey], soloCol);
+                    }
+                    columnContainer.appendChild(soloCol);
+                }
+
+                sectionBox.appendChild(columnContainer);
+                resultsTable.appendChild(sectionBox);
+            }
+        }
+
+        function analyze(absX, absY) {
+            const sArea = parseFloat(document.getElementById('searchRange').value) / 100;
+            const sR = Math.min(canvas.width, canvas.height) * sArea;
+            const bD = ctx.getImageData(Math.max(0, absX - sR), Math.max(0, absY - sR), sR * 2, sR * 2);
+            let x1 = Infinity, x2 = -Infinity, y1 = Infinity, y2 = -Infinity, f = false;
+            for (let i = 0; i < bD.data.length; i += 4) {
+                if ((bD.data[i] + bD.data[i + 1] + bD.data[i + 2]) / 3 < 80) {
+                    const x = (i / 4) % bD.width, y = Math.floor((i / 4) / bD.width);
+                    x1 = Math.min(x1, x); x2 = Math.max(x2, x); y1 = Math.min(y1, y); y2 = Math.max(y2, y); f = true;
+                }
+            }
+            const bx = f ? (absX - sR + x1) : absX - 12, by = f ? (absY - sR + y1) : absY - 12;
+            const bw = f ? (x2 - x1) : 24, bh = f ? (y2 - y1) : 24;
+            const sc = parseFloat(document.getElementById('sizeRange').value);
+            const sw = Math.max(1, bw * sc), sh = Math.max(1, bh * sc);
+            const sx = (bx + bw / 2) - (sw / 2), sy = (by + bh / 2) - (sh / 2);
+            const samp = ctx.getImageData(sx, sy, sw, sh).data;
+            let c = 0;
+            for (let i = 0; i < samp.length; i += 4) { if ((samp[i] + samp[i + 1] + samp[i + 2]) / 3 <= 240) c++; }
+            const r = c / (samp.length / 4 || 1);
+            const isF = r > (document.getElementById('inkThreshold').value / 100);
+            ctx.strokeStyle = isF ? "#2ecc71" : "#e74c3c";
+            ctx.lineWidth = 2; ctx.strokeRect(sx, sy, sw, sh);
+            return { filled: isF, ink: r };
+        }
+        function toggleBubble(element) {
+            const row = element.closest('.q-row');
+            const qName = row.querySelector('.q-name').innerText;
+
+            // If it has any color class, clear it (make it white)
+            if (element.className.includes('is-')) {
+                element.classList.remove('is-correct', 'is-wrong', 'is-multiple');
+            } else {
+                // If we are in the MC section and have an answer key
+                // This is a simple toggle; it just marks it as "correct" (green) for visibility
+                element.classList.add('is-correct');
+            }
+        }
+        function manualFix(element, label, qKey) {
+            const section = element.closest('.log-section');
+            const sectionHeader = section.querySelector('.log-header');
+            const sectionName = sectionHeader ? sectionHeader.innerText.trim() : "";
+            const isMC = sectionName.includes("MC");
+
+            let isExcluded = false;
+            if (isMC) {
+                const allRows = Array.from(section.querySelectorAll('.q-row'));
+                const currentRow = element.closest('.q-row');
+                const rowIndex = allRows.indexOf(currentRow);
+                if (rowIndex >= answerKey.length) isExcluded = true;
+            }
+
+            // 1. Toggle the bubble state visually
+            if (element.classList.contains('is-correct') ||
+                element.classList.contains('is-wrong') ||
+                element.classList.contains('is-multiple') ||
+                element.classList.contains('is-other-filled')) {
+                element.classList.remove('is-correct', 'is-wrong', 'is-multiple', 'is-other-filled');
+            } else {
+                if (isMC && !isExcluded) {
+                    element.classList.add('is-correct');
+                } else {
+                    element.classList.add('is-other-filled');
+                }
+            }
+
+            // 2. Sync to the background 'resultsTable'
+            const sourceSection = Array.from(resultsTable.querySelectorAll('.log-section'))
+                .find(s => s.querySelector('.log-header').innerText.trim() === sectionName);
+
+            if (sourceSection) {
+                const sourceRow = Array.from(sourceSection.querySelectorAll('.q-row'))
+                    .find(r => r.querySelector('.q-name').innerText === qKey);
+
+                if (sourceRow) {
+                    const modalBubbles = element.closest('.bubble-set').querySelectorAll('.bubble-item');
+                    const sourceBubbles = sourceRow.querySelectorAll('.bubble-item');
+                    modalBubbles.forEach((mb, idx) => {
+                        sourceBubbles[idx].className = mb.className;
+                    });
+                }
+            }
+
+// 3. Highlight Question Name if modified
+const row = element.closest('.q-row');
+const bubbles = row.querySelectorAll('.bubble-item');
+const resetBtn = row.querySelector('.btn-reset');
+
+let isModified = false;
+bubbles.forEach(b => {
+    // We remove 'is-answer-key' from both strings before comparing
+    // so that the border doesn't trigger the "Red Reset Button" bug
+    const current = b.className.replace('is-answer-key', '').replace(/\s+/g, ' ').trim();
+    const original = (b.getAttribute('data-original-class') || "").replace('is-answer-key', '').replace(/\s+/g, ' ').trim();
+
+    if (current !== original) {
+        isModified = true;
+    }
+});
+
+            if (isModified) {
+                resetBtn.style.backgroundColor = "#f56565";
+                resetBtn.style.color = "white";
+                resetBtn.style.borderColor = "#c53030";
+            } else {
+                resetBtn.style.backgroundColor = "";
+                resetBtn.style.color = "";
+                resetBtn.style.borderColor = "";
+            }
+
+            recalculateMCStats();
+        }
+        function recalculateMCStats() {
+            mcStats = { correct: 0, wrong: 0, multiple: 0, blank: 0, total: 0, excluded: 0 };
+
+            // Check if we are calculating from the Modal or the hidden background table
+            const target = (modalOverlay.style.display === 'flex') ? modalBody : resultsTable;
+            const sections = target.querySelectorAll('.log-section');
+            let mcSection = null;
+
+            sections.forEach(s => {
+                if (s.querySelector('.log-header').innerText.includes("MC")) mcSection = s;
+            });
+
+            if (!mcSection) return;
+
+            const rows = mcSection.querySelectorAll('.q-row');
+            rows.forEach((row, index) => {
+                // If there's no answer key provided for this question number, exclude it
+                if (index >= answerKey.length) {
+                    mcStats.excluded++;
+                    return;
+                }
+                mcStats.total++;
+
+                // Find bubbles currently marked as 'filled' (regardless of their current color)
+                const allBubbles = row.querySelectorAll('.bubble-item');
+                let detectedLabels = [];
+
+                allBubbles.forEach(b => {
+                    if (b.classList.contains('is-correct') || b.classList.contains('is-wrong') || b.classList.contains('is-multiple')) {
+                        detectedLabels.push(b.querySelector('span').innerText.toUpperCase());
+                    }
+                });
+
+// Update the visual colors for this row
+allBubbles.forEach(b => {
+    const bLabel = b.querySelector('span').innerText.toUpperCase();
+    const correctAnswer = answerKey[index];
+
+    // Clear existing logic colors
+    b.classList.remove('is-correct', 'is-wrong', 'is-multiple', 'is-answer-key');
+
+    // Re-apply the green border if it is the correct answer
+    if (bLabel === correctAnswer) {
+        b.classList.add('is-answer-key');
+    }
+
+    // Re-apply fill colors based on current selection state
+    if (detectedLabels.includes(bLabel)) {
+        if (detectedLabels.length > 1) {
+            b.classList.add('is-multiple');
+        } else if (bLabel === correctAnswer) {
+            b.classList.add('is-correct');
+        } else {
+            b.classList.add('is-wrong');
+        }
+    }
+});
+
+                // Tally the statistics
+                if (detectedLabels.length === 0) mcStats.blank++;
+                else if (detectedLabels.length > 1) mcStats.multiple++;
+                else if (detectedLabels[0] === answerKey[index]) mcStats.correct++;
+                else mcStats.wrong++;
+            });
+
+            // If the modal is open, refresh the stat text labels immediately
+            if (modalOverlay.style.display === 'flex') {
+                const totalDenom = mcStats.total || 1;
+                const updates = {
+                    '.stat-val': [
+                        mcStats.correct,
+                        mcStats.wrong,
+                        mcStats.multiple,
+                        mcStats.blank,
+                        mcStats.total,
+                        mcStats.excluded,
+                        (mcStats.correct / totalDenom * 100).toFixed(1) + '%',
+                        ((mcStats.wrong + mcStats.multiple + mcStats.blank) / totalDenom * 100).toFixed(1) + '%',
+                        (mcStats.wrong / totalDenom * 100).toFixed(1) + '%' // <-- Add this 9th item
+                    ]
+                };
+
+                const cards = modalBody.querySelectorAll('.stat-val');
+                cards.forEach((card, i) => {
+                    if (updates['.stat-val'][i] !== undefined) {
+                        card.innerText = updates['.stat-val'][i];
+                    }
+                });
+            }
+        }
+        // 1. Get the elements
+        const jsonInput = document.getElementById('jsonInput');
+        const jsonLabel = jsonInput.parentElement; // This targets the .json-label
+
+        // 2. Prevent the browser from just opening the file when dropped
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            jsonLabel.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        // 3. Visual feedback: Change color when hovering a file over the button
+        ['dragenter', 'dragover'].forEach(eventName => {
+            jsonLabel.addEventListener(eventName, () => {
+                jsonLabel.style.backgroundColor = "#34495e"; // Darker blue/grey
+                jsonLabel.style.border = "2px dashed #3498db";
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            jsonLabel.addEventListener(eventName, () => {
+                jsonLabel.style.backgroundColor = ""; // Reset to original
+                jsonLabel.style.border = "";
+            }, false);
+        });
+
+        // 4. The Drop Logic
+        jsonLabel.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+
+            if (files.length > 0) {
+                // This line "injects" the dropped file into your hidden input
+                jsonInput.files = files;
+
+                // This triggers your existing 'change' function automatically
+                jsonInput.dispatchEvent(new Event('change'));
+
+                // Optional: Update the button text to show the filename
+                jsonLabel.childNodes[0].textContent = "📄 " + files[0].name;
+            }
+        });
+        function autoFitZoom(img) {
+            const container = document.getElementById('image-container'); // Your wrapper/viewport
+            const displayImg = document.getElementById('display-image'); // The <img> tag
+
+            if (!container || !img) return;
+
+            // 1. Get dimensions
+            const containerW = container.clientWidth;
+            const containerH = container.clientHeight;
+            const imgW = img.naturalWidth;
+            const imgH = img.naturalHeight;
+
+            // 2. Calculate ratios (with a 0.9 multiplier for a small margin)
+            const widthRatio = (containerW * 0.9) / imgW;
+            const heightRatio = (containerH * 0.9) / imgH;
+
+            // 3. Pick the smaller ratio so it fits both ways
+            let bestRatio = Math.min(widthRatio, heightRatio);
+
+            // 4. Cap the zoom (e.g., don't zoom in more than 100% for tiny images)
+            if (bestRatio > 1) bestRatio = 1;
+
+            // 5. Apply the zoom
+            currentZoom = bestRatio; // Assuming you have a global zoom variable
+            applyZoom(); // Your existing function that updates the CSS transform/scale
+
+            // 6. Update your UI % display if you have one
+            const zoomLabel = document.getElementById('zoom-percent');
+            if (zoomLabel) zoomLabel.innerText = Math.round(currentZoom * 100) + '%';
+        }
+    </script>
+</body>
+
+</html>
