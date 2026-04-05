@@ -1,25 +1,29 @@
-
+/* Sleek 3D Button - Slimmer Text */
 .buttonstyle {
   display: inline-block;
-  padding: 5px 20px;
-  font-size: 15px;
+  padding: 10px 25px;
+  font-size: 14px; /* Slightly smaller for elegance */
+  font-weight: 500; /* Changed from 700 to 500 for a cleaner look */
+  letter-spacing: 0.5px; /* Adds breathing room */
   cursor: pointer;
   text-align: center;
   text-decoration: none;
   outline: none;
-  color: #008cff;
-  background-color: #ffff8e;
+  color: #0056b3; 
+  background-color: #ffeb3b; 
   border: none;
-  border-radius: 15px;
-  box-shadow: 0 9px #6ff5ff;
+  border-radius: 12px; /* Slightly tighter corners */
+  box-shadow: 0 5px #fbc02d;
+  transition: all 0.1s ease;
 }
 
-.buttonstyle:hover {background-color: #ffff8e}
+.buttonstyle:hover {
+  background-color: #fdd835;
+}
 
 .buttonstyle:active {
-  background-color: #ffff8e;
-  box-shadow: 0 5px #5bc9d1;
-  transform: translateY(4px);
+  box-shadow: 0 2px #fbc02d;
+  transform: translateY(3px);
 }
 
   .light-table-filter {
