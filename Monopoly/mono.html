@@ -2,20 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Var Controller</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Monopoly Cloud Bridge</title>
     <style>
         :root {
-            --bg-color: #fff9c4; /* Light yellow background */
-            --card-bg: #ffffff;
+            --bg: #fffde7;
             --accent: #fbc02d;
-            --text: #333;
+            --card: #ffffff;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text);
+            font-family: -apple-system, sans-serif;
+            background-color: var(--bg);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -23,143 +21,170 @@
             margin: 0;
         }
 
-        .card {
-            background: var(--card-bg);
+        .container {
+            background: var(--card);
             padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 400px;
-            margin-bottom: 20px;
+            max-width: 450px;
         }
 
-        h2 { margin-top: 0; color: #555; font-size: 1.2rem; }
+        .status-bar {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f5f5f5;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ccc;
+            margin-right: 10px;
+        }
 
         input {
             width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+            padding: 15px;
+            margin: 8px 0;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            font-size: 16px; /* Prevents iOS zoom */
             box-sizing: border-box;
-            font-size: 1rem;
         }
 
         button {
             width: 100%;
             padding: 15px;
-            background-color: var(--accent);
+            margin-top: 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: bold;
+            font-size: 16px;
             cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.2s;
+            transition: opacity 0.2s;
         }
 
-        button:active { background-color: #f9a825; }
+        .btn-connect { background-color: #4caf50; color: white; }
+        .btn-send { background-color: var(--accent); color: #333; }
+        button:active { opacity: 0.7; }
 
         #log {
+            margin-top: 20px;
+            background: #222;
+            color: #0f0;
             font-family: monospace;
-            font-size: 0.8rem;
-            height: 150px;
+            font-size: 12px;
+            padding: 15px;
+            border-radius: 10px;
+            height: 200px;
             overflow-y: auto;
-            background: #eee;
-            padding: 10px;
-            border-radius: 5px;
             width: 100%;
-        }
-
-        .status-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: red;
-            margin-right: 5px;
+            box-sizing: border-box;
         }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2><span id="dot" class="status-dot"></span> Cloud Connection</h2>
-        <input type="text" id="projectId" placeholder="TurboWarp Project ID" value="123456789">
-        <input type="text" id="varName" placeholder="Variable Name (e.g. score)" value="score">
-        <input type="number" id="varValue" placeholder="Value to set" value="100">
-        <button onclick="sendData()">Update Cloud Variable</button>
+    <div class="container">
+        <div class="status-bar">
+            <div id="dot" class="dot"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+
+        <input type="text" id="projId" placeholder="Project ID (e.g. 1000000)" value="">
+        <button class="btn-connect" onclick="startConnection()">1. Start Connection</button>
+
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+        <input type="text" id="varName" placeholder="Variable Name (No cloud symbol)" value="test">
+        <input type="number" id="varValue" placeholder="Numeric Value" value="1">
+        <button class="btn-send" onclick="sendUpdate()">2. Update Variable</button>
     </div>
 
-    <div class="card">
-        <h2>Activity Log</h2>
-        <div id="log">Waiting for connection...</div>
-    </div>
+    <div id="log">Logs will appear here...</div>
 
     <script>
-        const logElement = document.getElementById('log');
+        let ws;
+        const logBox = document.getElementById('log');
         const dot = document.getElementById('dot');
-        let socket;
+        const statusText = document.getElementById('statusText');
 
-        function log(msg) {
-            const time = new Date().toLocaleTimeString();
-            logElement.innerHTML = `<div>[${time}] ${msg}</div>` + logElement.innerHTML;
+        function addLog(msg) {
+            const entry = document.createElement('div');
+            entry.textContent = `> ${msg}`;
+            logBox.prepend(entry);
         }
 
-        function connect() {
-            // TurboWarp Cloud Server
-            socket = new WebSocket('wss://clouddata.turbowarp.org');
+        function startConnection() {
+            const id = document.getElementById('projId').value;
+            if (!id) return alert("Please enter a Project ID first!");
 
-            socket.onopen = () => {
-                dot.style.background = '#4caf50'; // Green
-                log("Connected to TurboWarp");
-                
-                // Handshake with the specific project
-                const id = document.getElementById('projectId').value;
-                const handshake = { method: 'handshake', project_id: id };
-                socket.send(JSON.stringify(handshake) + '\n');
+            if (ws) ws.close();
+
+            // Connect to TurboWarp
+            ws = new WebSocket('wss://clouddata.turbowarp.org');
+
+            ws.onopen = () => {
+                dot.style.background = '#4caf50';
+                statusText.innerText = "Connected";
+                addLog("Socket Open. Sending Handshake...");
+
+                // Handshake MUST include project_id and a username
+                const handshake = {
+                    method: "handshake",
+                    project_id: String(id),
+                    user: "iPadUser_" + Math.floor(Math.random() * 999)
+                };
+
+                // CRITICAL: The \n at the end
+                ws.send(JSON.stringify(handshake) + '\n');
             };
 
-            socket.onmessage = (event) => {
-                const lines = event.data.split('\n');
+            ws.onmessage = (e) => {
+                const lines = e.data.split('\n');
                 lines.forEach(line => {
                     if (!line) return;
                     const data = JSON.parse(line);
-                    if (data.method === 'set') {
-                        log(`Received: ${data.name} = ${data.value}`);
+                    if (data.method === "set") {
+                        addLog(`Recv: ${data.name} = ${data.value}`);
                     }
                 });
             };
 
-            socket.onclose = () => {
-                dot.style.background = 'red';
-                log("Disconnected. Retrying in 3s...");
-                setTimeout(connect, 3000);
+            ws.onerror = (err) => addLog("Error: Connection failed.");
+            
+            ws.onclose = () => {
+                dot.style.background = '#f44336';
+                statusText.innerText = "Disconnected";
+                addLog("Closed. Click 'Start' to reconnect.");
             };
         }
 
-        function sendData() {
-            if (socket.readyState !== WebSocket.OPEN) {
-                log("Error: Not connected");
-                return;
+        function sendUpdate() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                return addLog("Error: Connect first!");
             }
 
-            const id = document.getElementById('projectId').value;
+            const id = document.getElementById('projId').value;
             const name = document.getElementById('varName').value;
             const val = document.getElementById('varValue').value;
 
             const packet = {
-                method: 'set',
-                project_id: id,
-                name: '☁ ' + name, // TurboWarp expects the cloud symbol
+                method: "set",
+                project_id: String(id),
+                name: "☁ " + name, // Add the cloud symbol here
                 value: String(val)
             };
 
-            socket.send(JSON.stringify(packet) + '\n');
-            log(`Sent: ☁ ${name} = ${val}`);
+            ws.send(JSON.stringify(packet) + '\n');
+            addLog(`Sent: ☁ ${name} = ${val}`);
         }
-
-        // Start connection
-        connect();
     </script>
 </body>
 </html>
