@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Var Controller</title>
+    <style>
+        :root {
+            --bg-color: #fff9c4; /* Light yellow background */
+            --card-bg: #ffffff;
+            --accent: #fbc02d;
+            --text: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+
+        h2 { margin-top: 0; color: #555; font-size: 1.2rem; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--accent);
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        button:active { background-color: #f9a825; }
+
+        #log {
+            font-family: monospace;
+            font-size: 0.8rem;
+            height: 150px;
+            overflow-y: auto;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: red;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2><span id="dot" class="status-dot"></span> Cloud Connection</h2>
+        <input type="text" id="projectId" placeholder="TurboWarp Project ID" value="123456789">
+        <input type="text" id="varName" placeholder="Variable Name (e.g. score)" value="score">
+        <input type="number" id="varValue" placeholder="Value to set" value="100">
+        <button onclick="sendData()">Update Cloud Variable</button>
+    </div>
+
+    <div class="card">
+        <h2>Activity Log</h2>
+        <div id="log">Waiting for connection...</div>
+    </div>
+
+    <script>
+        const logElement = document.getElementById('log');
+        const dot = document.getElementById('dot');
+        let socket;
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            logElement.innerHTML = `<div>[${time}] ${msg}</div>` + logElement.innerHTML;
+        }
+
+        function connect() {
+            // TurboWarp Cloud Server
+            socket = new WebSocket('wss://clouddata.turbowarp.org');
+
+            socket.onopen = () => {
+                dot.style.background = '#4caf50'; // Green
+                log("Connected to TurboWarp");
+                
+                // Handshake with the specific project
+                const id = document.getElementById('projectId').value;
+                const handshake = { method: 'handshake', project_id: id };
+                socket.send(JSON.stringify(handshake) + '\n');
+            };
+
+            socket.onmessage = (event) => {
+                const lines = event.data.split('\n');
+                lines.forEach(line => {
+                    if (!line) return;
+                    const data = JSON.parse(line);
+                    if (data.method === 'set') {
+                        log(`Received: ${data.name} = ${data.value}`);
+                    }
+                });
+            };
+
+            socket.onclose = () => {
+                dot.style.background = 'red';
+                log("Disconnected. Retrying in 3s...");
+                setTimeout(connect, 3000);
+            };
+        }
+
+        function sendData() {
+            if (socket.readyState !== WebSocket.OPEN) {
+                log("Error: Not connected");
+                return;
+            }
+
+            const id = document.getElementById('projectId').value;
+            const name = document.getElementById('varName').value;
+            const val = document.getElementById('varValue').value;
+
+            const packet = {
+                method: 'set',
+                project_id: id,
+                name: '☁ ' + name, // TurboWarp expects the cloud symbol
+                value: String(val)
+            };
+
+            socket.send(JSON.stringify(packet) + '\n');
+            log(`Sent: ☁ ${name} = ${val}`);
+        }
+
+        // Start connection
+        connect();
+    </script>
+</body>
+</html>
