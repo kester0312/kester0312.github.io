@@ -23,10 +23,12 @@
 <body>
 
   
-  <script src="../../code/js/header.js"></script>
+  <script src="../code/js/header.js"></script>
 
-    </br>
-    </br>
+  <br/>
+    <br/>
+      <br/>
+        <br/>
 <div id="container">
   <div id="left">
     <!-- Settings inputs -->
@@ -50,7 +52,7 @@
     <input id="savePixelsY" type="number" value="3508"><br/>
 
     <label>Search Percent:</label>
-    <input id="searchPercentBox" type="number" value="1" min="1" max="20"><br/>
+    <input id="searchPercentBox" type="number" value="2" min="1" max="20"><br/>
 
     <label>Step Required:</label>
     <input id="stepRequired" type="checkbox"><br/><br/>
@@ -61,16 +63,11 @@
     <br/><br/>
 
     <!-- Download aligned + copy buttons -->
-<button id="downloadBtn" disabled>Download Aligned</button>
-<button id="copyBtn" disabled>Copy Aligned</button>
-<br/>
-<button id="copyDataUrlBtn" disabled>Copy Data URL</button>
-<button id="copyAlertBtn" disabled>Copy In Alert</button>
-<button id="copyLogBtn" disabled>Copy In Log</button> <br/>
-<button id="showUrlBtn" disabled>Show URL for Copy</button>
-<br/>
-<textarea id="urlOutput" style="width:100%; height:100px; margin-top:10px; display:none;" readonly></textarea>
-<span id="copyStatus" style="font-size:0.9em;color:#333;"></span>
+    <button id="downloadBtn" disabled>Download Aligned</button>
+    <button id="copyBtn" disabled>Copy Aligned</button>
+    <button id="copyDataUrlBtn" disabled>Copy Data URL</button>
+    <br/>
+    <span id="copyStatus" style="font-size:0.9em;color:#333;"></span>
   </div>
 
   <div id="right">
@@ -82,7 +79,7 @@
   <div id="log"></div>
 </div>
 
-<script src=".././McScaner.js"></script>
+<script src="./McScaner.js"></script>
 <script>
     
 let cvReady = false;
@@ -283,26 +280,6 @@ document.getElementById('copyDataUrlBtn').addEventListener('click', async () => 
   };
   reader.readAsDataURL(blob);
 });
-document.getElementById('copyAlertBtn').addEventListener('click', async () => {
-  if (!alignedMat) { 
-    alert("No aligned image yet."); 
-    return; 
-  }
-
-  document.getElementById('copyStatus').textContent = "Generating Alert...";
-  
-  // Convert to blob then DataURL
-  const blob = await matToBlob(alignedMat, "jpeg", 0.7);
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    const dataUrl = reader.result;
-    // Show the alert with the text
-    alert(dataUrl);
-    document.getElementById('copyStatus').textContent = "✅ Alert shown.";
-    log("[INFO] Data URL displayed in alert.");
-  };
-  reader.readAsDataURL(blob);
-});
 
 async function loadCvMatFromFile(file) {
   return new Promise((resolve,reject)=>{
@@ -433,13 +410,9 @@ function refineAndTransform() {
 
   log("[INFO] Perspective transform complete. Showing aligned image.");
   drawImage(alignedMat);
-// ... inside refineAndTransform() ...
-document.getElementById('downloadBtn').disabled = false;
-document.getElementById('copyBtn').disabled = false;
-document.getElementById('copyDataUrlBtn').disabled = false;
-document.getElementById('copyAlertBtn').disabled = false; // Add this line
-//document.getElementById('copyLogBtn').disabled = false; // Add this line
-document.getElementById('showUrlBtn').disabled = false;
+  document.getElementById('downloadBtn').disabled = false;
+  document.getElementById('copyBtn').disabled = false;
+  document.getElementById('copyDataUrlBtn').disabled = false;
 
   srcPts.delete(); dstPts.delete(); M.delete(); bgr.delete(); thresh.delete();
 }
@@ -457,49 +430,6 @@ function matToBlob(mat) {
   rgba.delete();
   return new Promise(resolve => c.toBlob(resolve, 'image/png'));
 }
-document.getElementById('copyLogBtn').addEventListener('click', async () => {
-  if (!alignedMat) { 
-    log("[ERROR] No aligned image yet."); 
-    return; 
-  }
-
-  document.getElementById('copyStatus').textContent = "Printing to log...";
-
-  // Using JPEG 0.7 to keep the log string size manageable
-  const blob = await matToBlob(alignedMat, "jpeg", 0.7);
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    const dataUrl = reader.result;
-    log("--- DATA URL START ---");
-    log(dataUrl);
-    log("--- DATA URL END ---");
-    document.getElementById('copyStatus').textContent = "✅ Printed to log.";
-  };
-  reader.readAsDataURL(blob);
-});
-document.getElementById('showUrlBtn').addEventListener('click', async () => {
-  if (!alignedMat) return;
-
-  const status = document.getElementById('copyStatus');
-  const textArea = document.getElementById('urlOutput');
-  
-  status.textContent = "Processing string...";
-  
-  // Use a slightly lower quality to keep the string size iPad-friendly
-  const blob = await matToBlob(alignedMat, "jpeg", 0.6);
-  const reader = new FileReader();
-  
-  reader.onloadend = () => {
-    textArea.value = reader.result;
-    textArea.style.display = "block"; // Show the box
-    status.textContent = "✅ Ready! Tap box, Select All, and Copy.";
-    
-    // Auto-focus for iPad users
-    textArea.focus();
-    textArea.select();
-  };
-  reader.readAsDataURL(blob);
-});
 </script>
 </body>
 </html>
