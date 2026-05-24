@@ -1694,8 +1694,6 @@
                     alert("Error loading the selected config file.");
                 });
         };
-        // Run the directory check immediately when the page finishes rendering
-        scanJsonFolder();
 
         // --- FULL-EDGE SIDEBAR RESIZER LOGIC ---
         const sidebar = document.querySelector('.sidebar');
@@ -1731,6 +1729,8 @@
                 document.body.style.cursor = ''; // Reset cursor
             }
         });
+        // Run the directory check immediately when the page finishes rendering
+        scanJsonFolder();
     </script>
 </body>
 
