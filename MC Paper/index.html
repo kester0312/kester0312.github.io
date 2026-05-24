@@ -1608,75 +1608,57 @@
 
 
 
-        // Automatically read the folder, populate choices, and attempt to default to default.json
         function scanJsonFolder() {
             const dropdown = document.getElementById('layoutDropdown');
-            if (!dropdown) return;
 
-            fetch('pos_default_json/')
-                .then(res => {
-                    if (!res.ok) throw new Error("Folder 'pos_default_json' not found on server.");
-                    return res.text();
+            // Fetch the index JSON file from the root directory
+            fetch('./pos_default.json')
+                .then(response => {
+                    if (!response.ok) throw new Error('Could not load pos_default.json');
+                    return response.json();
                 })
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const links = doc.querySelectorAll('a');
-
-                    // Reset dropdown to use "Custom json" text as a disabled option
-                    dropdown.innerHTML = '<option value="Custom" disabled>Custom json</option>';
-
-                    let defaultPath = null;
-
-                    links.forEach(link => {
-                        const href = link.getAttribute('href');
-
-                        if (href && href.endsWith('.json')) {
-                            const fileName = decodeURIComponent(href.split('/').pop());
-                            const fullPath = `pos_default_json/${fileName}`;
-
+                .then(data => {
+                    if (data && Array.isArray(data.files)) {
+                        data.files.forEach(fileName => {
                             const option = document.createElement('option');
-                            option.value = fullPath;
 
-                            // Directly use the filename string (e.g., "cc.json", "Abc.json")
-                            option.textContent = fileName;
+                            // Prepend the folder name so the fetch URL is correct when selected
+                            option.value = `pos_default_json/${fileName}`;
+                            option.textContent = fileName; // What the user sees in the dropdown
 
-                            // Insert option right above the "Custom json" option at the bottom
-                            dropdown.insertBefore(option, dropdown.lastElementChild);
+                            dropdown.appendChild(option);
+                        });
 
-                            // Track if default.json is present
-                            if (fileName.toLowerCase() === 'default.json') {
-                                defaultPath = fullPath;
-                            }
+                        // Optional: Auto-load the first file in the list on startup
+                        if (data.files.length > 0) {
+                            const firstFilePath = `pos_default_json/${data.files[0]}`;
+                            autoLoadFile(firstFilePath);
                         }
-                    });
-
-                    // If default.json exists, auto-select and load it
-                    if (defaultPath) {
-                        dropdown.value = defaultPath;
-                        fetch(defaultPath)
-                            .then(response => response.ok ? response.text() : null)
-                            .then(text => {
-                                if (text) {
-                                    loadJSON(text);
-                                    dropdown.value = defaultPath; // Keep sync
-                                }
-                            })
-                            .catch(err => console.error("Error auto-loading default.json:", err));
-                    } else {
-                        dropdown.value = 'Custom';
                     }
                 })
                 .catch(err => {
-                    console.warn("Could not read folder list. Defaulting to HTML settings:", err.message);
-                    dropdown.value = 'Custom';
+                    console.error('Error reading the layout index:', err);
                 });
+        }
+
+        // Helper function to handle the initial auto-load on page startup
+        function autoLoadFile(targetPath) {
+            fetch(targetPath)
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP Error Status ${response.status}`);
+                    return response.text();
+                })
+                .then(text => {
+                    loadJSON(text); // Triggers your core layout rendering logic
+                    document.getElementById('layoutDropdown').value = targetPath;
+                })
+                .catch(err => console.error('Error auto-loading default layout:', err));
         }
         document.getElementById('layoutDropdown').onchange = (e) => {
             const targetPath = e.target.value;
             if (targetPath === 'Custom') return;
 
-            // FIX: Clear the file input memory so it allows fresh uploads
+            // Reset local file input to prevent conflict
             const fileInput = document.getElementById('upload');
             if (fileInput) fileInput.value = '';
 
@@ -1686,7 +1668,7 @@
                     return response.text();
                 })
                 .then(text => {
-                    loadJSON(text);
+                    loadJSON(text); // Parses the text into your configData
                     document.getElementById('layoutDropdown').value = targetPath;
                 })
                 .catch(err => {
