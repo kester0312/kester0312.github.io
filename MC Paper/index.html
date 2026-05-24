@@ -45,37 +45,45 @@
             display: none;
         }
 
-        /* --- 2. SIDEBAR & PANELS --- */
         .sidebar {
             left: 0;
             top: 0;
             bottom: 0;
-
-            /* 1. Set a bigger default width (e.g., 450px instead of 320px) */
             width: 450px;
             min-width: 300px;
-            /* Prevents it from getting too small */
             max-width: 80vw;
-            /* Prevents it from covering the whole screen */
-
-            /* 2. Enable manual resizing */
-            resize: horizontal;
-            overflow: auto;
-            /* Required for 'resize' to work */
-
             background: #2c3e50;
             display: flex;
             flex-direction: column;
             padding: 15px;
             box-sizing: border-box;
             z-index: 100;
-            border-right: 4px solid #34495e;
-            /* Visual hint for the draggable edge */
+            border-right: 6px solid #1a252f;
+            position: relative;
+            user-select: none;
 
-            /* ... your other styles ... */
-            border-right: 5px solid #1a252f;
-            /* Darker edge acts as a visual handle */
-            transition: background 0.2s;
+            /* 1. REMOVE the cursor from here so the middle area uses normal pointer rules */
+            /* cursor: col-resize; */
+        }
+
+        /* 2. ADD this rule directly underneath to make a precise right-edge interactive trigger zone */
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: -6px;
+            /* Sits perfectly right over your 6px border */
+            bottom: 0;
+            width: 12px;
+            /* Makes a comfortable, invisible 12px wide hover zone */
+            cursor: col-resize;
+            /* ONLY shows the <|> resize icon here! */
+            z-index: 999;
+        }
+
+        /* Optional: Keep your nice hover glow effect */
+        .sidebar:hover {
+            border-right-color: #1d5377;
         }
 
         .sidebar:hover {
@@ -129,14 +137,19 @@
 
         .btn-paste {
             background: #8e44ad;
-            flex: 1.2;
+            flex: 1;
+            /* Changed from 1.2 to 1 to match file-label */
             font-size: 0.85em;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
+            padding: 12px 0;
+            /* Increased padding for more height */
         }
+
+
 
         .btn-answer {
             background: #d35400;
@@ -152,6 +165,7 @@
 
         .file-label {
             flex: 1;
+            /* Stays at 1 */
             background: #34495e;
             color: white;
             border-radius: 4px;
@@ -159,15 +173,19 @@
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 0.75em;
+            font-size: 0.85em;
+            /* Increased font-size to match btn-paste */
             cursor: pointer;
-            padding: 5px;
+            padding: 12px 0;
+            /* Increased padding for more height */
             text-align: center;
         }
 
+        /* Update this existing style */
         .json-label {
             display: block;
-            width: 100%;
+            flex: 1;
+            /* Changed from width: 100% to fill half the row */
             background: #95a5a6;
             color: white;
             padding: 8px 0;
@@ -176,6 +194,22 @@
             font-size: 0.8em;
             font-weight: bold;
             cursor: pointer;
+        }
+
+        /* Add this new style directly below it */
+        .dropdown-select {
+            flex: 1;
+            background: #34495e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: pointer;
+            text-align-last: center;
+            /* Centers the text inside the dropdown */
+            outline: none;
         }
 
         input[type="file"] {
@@ -622,16 +656,24 @@
             /* Aligns content horizontally in the center (optional) */
 
         }
-        /* New style for the correct answer's border */
-.bubble-item.is-answer-key {
-    border: 2px solid #2ecc71 !important;
-    background-color: rgba(46, 204, 113, 0.05); /* Very light green tint */
-}
 
-/* Ensure the border doesn't shift layout */
-.bubble-item {
-    box-sizing: border-box;
-}
+        /* New style for the correct answer's border */
+        /* New style for the correct answer's border */
+        .bubble-item.is-answer-key {
+            /* 1. Keep the physical border at 1px so the layout height NEVER changes */
+            border: 1px solid #2ecc71 !important;
+
+            /* 2. Use box-shadow to add an extra 1px visual depth (making it look 2px thick) */
+            box-shadow: 0 0 0 1px #2ecc71;
+
+            background-color: rgba(46, 204, 113, 0.05);
+            /* Very light green tint */
+        }
+
+        /* Ensure the border doesn't shift layout */
+        .bubble-item {
+            box-sizing: border-box;
+        }
     </style>
 </head>
 
@@ -661,8 +703,7 @@
         <div class="probe-panel">
             <div style="font-size: 0.7em; color: #bdc3c7; margin-bottom: 5px;">LIVE POINT SENSOR:</div>
             <div class="probe-row"><span>JSON Pos:</span> <span id="pCoord" class="val">0.00, 0.00</span></div>
-            <div class="probe-row"><span>Brightness:</span> <span id="pBright" class="val">--</span></div>
-            <div class="probe-row"><span>State:</span> <span id="pState" class="val">--</span></div>
+            <div class="probe-row"><span>Darkness:</span> <span id="pDark" class="val">--</span></div>
         </div>
 
         <div class="controls">
@@ -670,7 +711,12 @@
                 <button class="btn-paste" onclick="pasteImage()">📋 PASTE CLIPBOARD</button>
                 <label class="file-label">📁 OPEN IMAGE<input type="file" id="upload" accept="image/*"></label>
             </div>
-            <label class="json-label">📄 IMPORT CONFIG (.JSON)<input type="file" id="jsonInput" accept=".json"></label>
+            <div class="input-group-row">
+                <label class="json-label">📄 IMPORT JSON<input type="file" id="jsonInput" accept=".json"></label>
+                <select id="layoutDropdown" class="dropdown-select">
+                    <option value="Custom" disabled>Custom json</option>
+                </select>
+            </div>
 
             <button class="btn-answer" onclick="pasteAnswerKey()">🎯 PASTE ANSWER KEY</button>
 
@@ -678,7 +724,7 @@
                     min="10" max="200" value="100"></div>
             <div class="setting-row"><span>Search: <b id="searchLabel">4</b>%</span><input type="range" id="searchRange"
                     min="1" max="15" value="4"></div>
-            <div class="setting-row"><span>Ink Needed: <b id="inkLabel">20</b>%</span><input type="range"
+            <div class="setting-row"><span>Darkness: <b id="inkLabel">20</b>%</span><input type="range"
                     id="inkThreshold" min="1" max="100" value="20"></div>
             <div class="setting-row"><span>Box: <b id="sizeLabel">0.50</b>x</span><input type="range" id="sizeRange"
                     min="0.05" max="1.0" step="0.01" value="0.50"></div>
@@ -809,12 +855,20 @@
         function loadJSON(str) {
             try {
                 configData = JSON.parse(str);
+
+                // Force dropdown to show Custom json status
+                const dropdown = document.getElementById('layoutDropdown');
+                if (dropdown) dropdown.value = 'Custom';
+
+                // FIX: Clear the upload input cache right after parsing succeeds
+                const fileInput = document.getElementById('upload');
+                if (fileInput) fileInput.value = '';
+
                 if (configData.Setting) {
                     updateSlider('searchRange', configData.Setting.Search_Area || 4);
                     updateSlider('inkThreshold', configData.Setting.Ink_Threshold || 20);
                     updateSlider('sizeRange', configData.Setting.Box_Scale || 0.5);
                 }
-                // Automatically build the table inside resultsTable immediately
                 processAllGroups();
             } catch (e) {
                 alert("Invalid JSON file.");
@@ -870,21 +924,41 @@
         `;
 
 
-                // Check for modified rows for Red Button UI
+                // Check for modified rows and blank rows for the Reset Button UI
                 modalBody.querySelectorAll('.q-row').forEach(row => {
                     const bubbles = row.querySelectorAll('.bubble-item');
                     const resetBtn = row.querySelector('.btn-reset');
                     if (!resetBtn) return;
 
                     let isModified = false;
+                    let hasAnyAnswerFilled = false;
+
                     bubbles.forEach(b => {
+                        // 1. Check if the current bubble style differs from the original scan
                         if (b.className !== b.getAttribute('data-original-class')) isModified = true;
+
+                        // 2. Check if this bubble is currently active/selected
+                        if (b.classList.contains('is-correct') ||
+                            b.classList.contains('is-wrong') ||
+                            b.classList.contains('is-multiple') ||
+                            b.classList.contains('is-other-filled')) {
+                            hasAnyAnswerFilled = true;
+                        }
                     });
 
+                    // 3. Prioritize your color rules (Fixed: Red always wins if modified!)
                     if (isModified) {
-                        resetBtn.style.backgroundColor = "#f56565";
+                        resetBtn.style.backgroundColor = "#f56565"; // Red for any edited/modified row
                         resetBtn.style.color = "white";
                         resetBtn.style.borderColor = "#c53030";
+                    } else if (!hasAnyAnswerFilled) {
+                        resetBtn.style.backgroundColor = "#9c9c9c"; // Changed to your new neutral gray
+                        resetBtn.style.color = "white";
+                        resetBtn.style.borderColor = "#7a7a7a";
+                    } else {
+                        resetBtn.style.backgroundColor = "";        // Light Gray (Default unmodified state)
+                        resetBtn.style.color = "";
+                        resetBtn.style.borderColor = "";
                     }
                 });
 
@@ -996,6 +1070,10 @@
 
         document.getElementById('upload').onchange = (e) => loadImage(URL.createObjectURL(e.target.files[0]));
         document.getElementById('jsonInput').onchange = (e) => {
+            // Automatically switch dropdown layout selection to Custom
+            const dropdown = document.getElementById('layoutDropdown');
+            if (dropdown) dropdown.value = 'Custom';
+
             const reader = new FileReader();
             reader.onload = (f) => loadJSON(f.target.result);
             reader.readAsText(e.target.files[0]);
@@ -1014,12 +1092,20 @@
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
             const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
+
+            // Get pixel data
             const p = ctx.getImageData(x, y, 1, 1).data;
-            const b = Math.round((p[0] + p[1] + p[2]) / 3);
+
+            // Calculate Darkness: 0% is pure white, 100% is pure black
+            const brightness = (p[0] + p[1] + p[2]) / 3;
+            const darkness = Math.round(((255 - brightness) / 255) * 100);
+
             const coordStr = `${(x / canvas.width * 100).toFixed(2)}, ${(y / canvas.height * 100).toFixed(2)}`;
+
+            // Update UI
             document.getElementById('pCoord').innerText = coordStr;
-            document.getElementById('pBright').innerText = b;
-            document.getElementById('pState').innerText = b > 240 ? "WHITE" : (b < 35 ? "BLACK" : "GREY");
+            document.getElementById('pDark').innerText = darkness + "%";
+
             navigator.clipboard.writeText(`"${coordStr}"`);
         });
 
@@ -1112,33 +1198,35 @@
                     const qRow = document.createElement('div');
                     qRow.className = 'q-row';
 
-// 1. Build Bubble HTML and detect if modified
-let rowBubblesHtml = "";
-rowBubbles.forEach(item => {
-    let cls = "bubble-item";
-    
-    // Add border if it matches the answer key
-    if (isMC && mcCounter < answerKey.length && item.label === answerKey[mcCounter]) {
-        cls += " is-answer-key";
-    }
+                    // 1. Build Bubble HTML and detect if modified
+                    let rowBubblesHtml = "";
+                    rowBubbles.forEach(item => {
+                        let cls = "bubble-item";
 
-    if (isMC && mcCounter < answerKey.length) {
-        if (detected.length > 1 && item.res.filled) cls += " is-multiple";
-        else if (detected.length === 1 && item.res.filled) {
-            cls += (item.label === answerKey[mcCounter]) ? " is-correct" : " is-wrong";
-        }
-    } else if (item.res.filled) {
-        cls += " is-other-filled";
-    }
+                        // Add border if it matches the answer key
+                        if (isMC && mcCounter < answerKey.length && item.label === answerKey[mcCounter]) {
+                            cls += " is-answer-key";
+                        }
 
-    rowBubblesHtml += `
+                        if (isMC && mcCounter < answerKey.length) {
+                            if (detected.length > 1 && item.res.filled) cls += " is-multiple";
+                            else if (detected.length === 1 && item.res.filled) {
+                                cls += (item.label === answerKey[mcCounter]) ? " is-correct" : " is-wrong";
+                            }
+                        } else if (item.res.filled) {
+                            cls += " is-other-filled";
+                        }
+
+                        rowBubblesHtml += `
         <div class="${cls}" 
              data-original-class="${cls}" 
              onclick="manualFix(this, '${item.label}', '${qKey}')">
             <span style="font-weight:bold;">${item.label}</span>
             <span style="font-size:8px; opacity:0.8;">${Math.round(item.res.ink * 100)}%</span>
         </div>`;
-});
+                    });
+                    // Determine if this question scanned with absolutely no answers filled
+                    const isOriginallyBlank = (detected.length === 0);
 
                     // 2. Logic for the Reset Button Appearance
                     let rowHtml = `
@@ -1146,15 +1234,24 @@ rowBubbles.forEach(item => {
             <div class="q-name" style="min-width: ${isMC ? '35px' : '75px'}">${qKey}</div>
             <div class="bubble-set">${rowBubblesHtml}</div>
         </div>
-        <button class="btn-reset" onclick="
+        <button class="btn-reset" 
+            style="${isOriginallyBlank ? 'background-color: #9c9c9c; color: white; border-color: #7a7a7a;' : ''}"
+            onclick="
             const row = this.closest('.q-row');
             const bubbles = row.querySelectorAll('.bubble-item');
             
             bubbles.forEach(b => { b.className = b.getAttribute('data-original-class'); });
 
-            this.style.backgroundColor = '';
-            this.style.color = '';
-            this.style.borderColor = '';
+            // Revert back to the new gray if it was originally a blank row
+            if (${isOriginallyBlank}) {
+                this.style.backgroundColor = '#9c9c9c';
+                this.style.color = 'white';
+                this.style.borderColor = '#7a7a7a';
+            } else {
+                this.style.backgroundColor = '';
+                this.style.color = '';
+                this.style.borderColor = '';
+            }
             this.innerText = 'Reset';
 
             const sourceSection = Array.from(resultsTable.querySelectorAll('.log-section'))
@@ -1219,14 +1316,33 @@ rowBubbles.forEach(item => {
             const sc = parseFloat(document.getElementById('sizeRange').value);
             const sw = Math.max(1, bw * sc), sh = Math.max(1, bh * sc);
             const sx = (bx + bw / 2) - (sw / 2), sy = (by + bh / 2) - (sh / 2);
+
+            // --- DARKNESS CALCULATION LOGIC START ---
             const samp = ctx.getImageData(sx, sy, sw, sh).data;
-            let c = 0;
-            for (let i = 0; i < samp.length; i += 4) { if ((samp[i] + samp[i + 1] + samp[i + 2]) / 3 <= 240) c++; }
-            const r = c / (samp.length / 4 || 1);
-            const isF = r > (document.getElementById('inkThreshold').value / 100);
+            let totalBrightness = 0;
+            const totalPixels = samp.length / 4 || 1;
+
+            for (let i = 0; i < samp.length; i += 4) {
+                // Calculate brightness of current pixel (0 to 255)
+                const brightness = (samp[i] + samp[i + 1] + samp[i + 2]) / 3;
+                totalBrightness += brightness;
+            }
+
+            // Average brightness of the whole box (0 = pure black, 255 = pure white)
+            const avgBrightness = totalBrightness / totalPixels;
+
+            // Convert to darkness percentage (0% = pure white, 100% = pure black)
+            const darknessRatio = (255 - avgBrightness) / 255;
+
+            // Test against your slider threshold (e.g. slider at 20 = 20% darkness required)
+            const isF = darknessRatio > (document.getElementById('inkThreshold').value / 100);
+            // --- DARKNESS CALCULATION LOGIC END ---
+
             ctx.strokeStyle = isF ? "#2ecc71" : "#e74c3c";
             ctx.lineWidth = 2; ctx.strokeRect(sx, sy, sw, sh);
-            return { filled: isF, ink: r };
+
+            // Return darkness ratio as 'ink' so the rest of your UI displays the darkness % properly
+            return { filled: isF, ink: darknessRatio };
         }
         function toggleBubble(element) {
             const row = element.closest('.q-row');
@@ -1255,7 +1371,7 @@ rowBubbles.forEach(item => {
                 if (rowIndex >= answerKey.length) isExcluded = true;
             }
 
-            // 1. Toggle the bubble state visually
+            // 1. Toggle the bubble state visually (Temporary status change)
             if (element.classList.contains('is-correct') ||
                 element.classList.contains('is-wrong') ||
                 element.classList.contains('is-multiple') ||
@@ -1269,7 +1385,15 @@ rowBubbles.forEach(item => {
                 }
             }
 
-            // 2. Sync to the background 'resultsTable'
+            // 2. Run stats recalculation immediately so the row's classes 
+            // are fully cleaned up and normalized according to real grading logic
+            recalculateMCStats();
+
+            // 3. Sync the newly normalized classes from the modal row to the background 'resultsTable'
+            const row = element.closest('.q-row');
+            const bubbles = row.querySelectorAll('.bubble-item');
+            const resetBtn = row.querySelector('.btn-reset');
+
             const sourceSection = Array.from(resultsTable.querySelectorAll('.log-section'))
                 .find(s => s.querySelector('.log-header').innerText.trim() === sectionName);
 
@@ -1278,31 +1402,36 @@ rowBubbles.forEach(item => {
                     .find(r => r.querySelector('.q-name').innerText === qKey);
 
                 if (sourceRow) {
-                    const modalBubbles = element.closest('.bubble-set').querySelectorAll('.bubble-item');
                     const sourceBubbles = sourceRow.querySelectorAll('.bubble-item');
-                    modalBubbles.forEach((mb, idx) => {
+                    bubbles.forEach((mb, idx) => {
                         sourceBubbles[idx].className = mb.className;
                     });
                 }
             }
 
-// 3. Highlight Question Name if modified
-const row = element.closest('.q-row');
-const bubbles = row.querySelectorAll('.bubble-item');
-const resetBtn = row.querySelector('.btn-reset');
+            // 4. Check if the row is modified by comparing functional "filled" states 
+            // instead of fragile class text strings
+            let isModified = false;
+            bubbles.forEach(b => {
+                // Check if currently active/filled
+                const isCurrentlyFilled = b.classList.contains('is-correct') ||
+                    b.classList.contains('is-wrong') ||
+                    b.classList.contains('is-multiple') ||
+                    b.classList.contains('is-other-filled');
 
-let isModified = false;
-bubbles.forEach(b => {
-    // We remove 'is-answer-key' from both strings before comparing
-    // so that the border doesn't trigger the "Red Reset Button" bug
-    const current = b.className.replace('is-answer-key', '').replace(/\s+/g, ' ').trim();
-    const original = (b.getAttribute('data-original-class') || "").replace('is-answer-key', '').replace(/\s+/g, ' ').trim();
+                // Check if it was filled during the original image scan
+                const origClass = b.getAttribute('data-original-class') || "";
+                const isOriginallyFilled = origClass.includes('is-correct') ||
+                    origClass.includes('is-wrong') ||
+                    origClass.includes('is-multiple') ||
+                    origClass.includes('is-other-filled');
 
-    if (current !== original) {
-        isModified = true;
-    }
-});
+                if (isCurrentlyFilled !== isOriginallyFilled) {
+                    isModified = true;
+                }
+            });
 
+            // 5. Safely apply or strip the Red Reset UI state
             if (isModified) {
                 resetBtn.style.backgroundColor = "#f56565";
                 resetBtn.style.color = "white";
@@ -1312,8 +1441,6 @@ bubbles.forEach(b => {
                 resetBtn.style.color = "";
                 resetBtn.style.borderColor = "";
             }
-
-            recalculateMCStats();
         }
         function recalculateMCStats() {
             mcStats = { correct: 0, wrong: 0, multiple: 0, blank: 0, total: 0, excluded: 0 };
@@ -1348,30 +1475,30 @@ bubbles.forEach(b => {
                     }
                 });
 
-// Update the visual colors for this row
-allBubbles.forEach(b => {
-    const bLabel = b.querySelector('span').innerText.toUpperCase();
-    const correctAnswer = answerKey[index];
+                // Update the visual colors for this row
+                allBubbles.forEach(b => {
+                    const bLabel = b.querySelector('span').innerText.toUpperCase();
+                    const correctAnswer = answerKey[index];
 
-    // Clear existing logic colors
-    b.classList.remove('is-correct', 'is-wrong', 'is-multiple', 'is-answer-key');
+                    // Clear existing logic colors
+                    b.classList.remove('is-correct', 'is-wrong', 'is-multiple', 'is-answer-key');
 
-    // Re-apply the green border if it is the correct answer
-    if (bLabel === correctAnswer) {
-        b.classList.add('is-answer-key');
-    }
+                    // Re-apply the green border if it is the correct answer
+                    if (bLabel === correctAnswer) {
+                        b.classList.add('is-answer-key');
+                    }
 
-    // Re-apply fill colors based on current selection state
-    if (detectedLabels.includes(bLabel)) {
-        if (detectedLabels.length > 1) {
-            b.classList.add('is-multiple');
-        } else if (bLabel === correctAnswer) {
-            b.classList.add('is-correct');
-        } else {
-            b.classList.add('is-wrong');
-        }
-    }
-});
+                    // Re-apply fill colors based on current selection state
+                    if (detectedLabels.includes(bLabel)) {
+                        if (detectedLabels.length > 1) {
+                            b.classList.add('is-multiple');
+                        } else if (bLabel === correctAnswer) {
+                            b.classList.add('is-correct');
+                        } else {
+                            b.classList.add('is-wrong');
+                        }
+                    }
+                });
 
                 // Tally the statistics
                 if (detectedLabels.length === 0) mcStats.blank++;
@@ -1478,6 +1605,132 @@ allBubbles.forEach(b => {
             const zoomLabel = document.getElementById('zoom-percent');
             if (zoomLabel) zoomLabel.innerText = Math.round(currentZoom * 100) + '%';
         }
+
+
+
+        // Automatically read the folder, populate choices, and attempt to default to default.json
+        function scanJsonFolder() {
+            const dropdown = document.getElementById('layoutDropdown');
+            if (!dropdown) return;
+
+            fetch('pos_default_json/')
+                .then(res => {
+                    if (!res.ok) throw new Error("Folder 'pos_default_json' not found on server.");
+                    return res.text();
+                })
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const links = doc.querySelectorAll('a');
+
+                    // Reset dropdown to use "Custom json" text as a disabled option
+                    dropdown.innerHTML = '<option value="Custom" disabled>Custom json</option>';
+
+                    let defaultPath = null;
+
+                    links.forEach(link => {
+                        const href = link.getAttribute('href');
+
+                        if (href && href.endsWith('.json')) {
+                            const fileName = decodeURIComponent(href.split('/').pop());
+                            const fullPath = `pos_default_json/${fileName}`;
+
+                            const option = document.createElement('option');
+                            option.value = fullPath;
+
+                            // Directly use the filename string (e.g., "cc.json", "Abc.json")
+                            option.textContent = fileName;
+
+                            // Insert option right above the "Custom json" option at the bottom
+                            dropdown.insertBefore(option, dropdown.lastElementChild);
+
+                            // Track if default.json is present
+                            if (fileName.toLowerCase() === 'default.json') {
+                                defaultPath = fullPath;
+                            }
+                        }
+                    });
+
+                    // If default.json exists, auto-select and load it
+                    if (defaultPath) {
+                        dropdown.value = defaultPath;
+                        fetch(defaultPath)
+                            .then(response => response.ok ? response.text() : null)
+                            .then(text => {
+                                if (text) {
+                                    loadJSON(text);
+                                    dropdown.value = defaultPath; // Keep sync
+                                }
+                            })
+                            .catch(err => console.error("Error auto-loading default.json:", err));
+                    } else {
+                        dropdown.value = 'Custom';
+                    }
+                })
+                .catch(err => {
+                    console.warn("Could not read folder list. Defaulting to HTML settings:", err.message);
+                    dropdown.value = 'Custom';
+                });
+        }
+        document.getElementById('layoutDropdown').onchange = (e) => {
+            const targetPath = e.target.value;
+            if (targetPath === 'Custom') return;
+
+            // FIX: Clear the file input memory so it allows fresh uploads
+            const fileInput = document.getElementById('upload');
+            if (fileInput) fileInput.value = '';
+
+            fetch(targetPath)
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP Error Status ${response.status}`);
+                    return response.text();
+                })
+                .then(text => {
+                    loadJSON(text);
+                    document.getElementById('layoutDropdown').value = targetPath;
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Error loading the selected config file.");
+                });
+        };
+        // Run the directory check immediately when the page finishes rendering
+        scanJsonFolder();
+
+        // --- FULL-EDGE SIDEBAR RESIZER LOGIC ---
+        const sidebar = document.querySelector('.sidebar');
+        let isResizing = false;
+
+        sidebar.addEventListener('mousedown', (e) => {
+            // Get the exact position of the sidebar's right edge
+            const sidebarRightEdge = sidebar.getBoundingClientRect().right;
+
+            // Only trigger drag if the click is within 10px of the right border edge
+            if (e.clientX >= sidebarRightEdge - 10 && e.clientX <= sidebarRightEdge + 5) {
+                isResizing = true;
+                document.body.style.cursor = 'col-resize';
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            // Calculate new width based on mouse X coordinate
+            let newWidth = e.clientX;
+
+            // Enforce your min and max width constraints
+            if (newWidth < 300) newWidth = 300;
+            if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
+
+            sidebar.style.width = newWidth + 'px';
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = ''; // Reset cursor
+            }
+        });
     </script>
 </body>
 
