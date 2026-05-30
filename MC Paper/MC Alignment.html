@@ -4,70 +4,283 @@
 <meta charset="UTF-8">
 <title>MC Scanner</title>
 <style>
-  body { font-family: sans-serif; margin:0; }
-  #container { display:flex; flex-direction:row; }
+  /* 移除整頁預設邊距，防止出現捲軸 */
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: sans-serif;
+  }
+  
+  /* 預設左右分割佈局 (寬 > 高) */
+  #container {
+    display: flex;
+    flex-direction: row;
+    width: 100vw;
+    height: 100vh;
+  }
   #left, #right {
-    flex:1; /* each takes 50% */
-    padding:20px;
-    box-sizing:border-box;
+    flex: 1;
+    padding: 20px;
+    box-sizing: border-box;
+    height: 100%;
+    overflow-y: auto;
   }
   #left {
-    background-color:#e6f0ff; /* light blue background */
+    background-color: #e6f0ff;
   }
-  #bottom { margin-top:10px; padding:10px; background:#fafafa; }
-  canvas { border:1px solid #ccc; max-width:100%; height:auto; }
-  #log { white-space: pre-line; background:#fff; padding:10px; height:200px; overflow:auto; }
-  label { display:inline-block; width:140px; }
+  #right {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background-color: #fff;
+  }
+  
+  #bottom { padding: 10px; background: #fafafa; box-sizing: border-box; }
+  canvas { border: 1px solid #ccc; max-width: 100%; height: auto; display: block; }
+  #log { white-space: pre-line; background: #fff; padding: 10px; height: 200px; overflow: auto; border: 1px solid #ddd; }
+  label { display: inline-block; width: 140px; }
+  
+  #opencvImportZone {
+    display: inline-block;
+    margin-left: 10px;
+  }
+  .btn-import {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+  }
+  .btn-import:hover { background-color: #c0392b; }
+
+  /* 摺疊按鈕樣式 */
+  .fold-btn {
+    display: none;
+    width: 100%;
+    background: #4a90e2;
+    color: white;
+    border: none;
+    height: 55px;
+    line-height: 55px;
+    padding: 0;
+    font-size: 1.3em;
+    text-align: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    font-weight: bold;
+  }
+  .fold-btn:hover { background: #357abd; }
+  
+  /* 當螢幕高度大於寬度時 (直向高螢幕模式 / 手機) */
+  @media (orientation: portrait), (max-aspect-ratio: 1/1) {
+    body, html {
+      overflow: hidden; /* 由容器個別處理，主頁面絕不滾動 */
+    }
+    body > br {
+      display: none !important;
+    }
+    #container {
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      margin: 0 !important;
+      padding: 0 !important;
+      position: relative;
+    }
+    
+    /* 上半部主要容器：高度精確等於 總高度 扣除 填滿寬度的 1:1 影像預覽區高度 (100vw) */
+    #left {
+      width: 100vw;
+      height: calc(100vh - 100vw) !important;
+      flex: none;
+      padding: 0 !important;
+      margin: 0 !important;
+      background-color: #e6f0ff;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    /* 第一上半部（常駐操作區：放大 3 倍以上） */
+    #upper-part1 {
+      padding: 25px 30px;
+      background-color: #d1e4ff;
+      box-sizing: border-box;
+      /* 高度扣除 55px 的折疊按鈕 */
+      height: calc(100vh - 100vw - 55px) !important;
+      overflow-y: auto;
+      font-size: 1.8rem !important;
+    }
+
+    #upper-part1 input[type="file"] {
+      font-size: 1.6rem !important;
+      padding: 12px 0;
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    #upper-part1 button {
+      padding: 18px 30px !important;
+      font-size: 1.8rem !important;
+      font-weight: bold !important;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+    
+    #loadBtn {
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      width: 100%;
+    }
+
+    #copyStatus {
+      font-size: 1.4rem !important;
+      margin-top: 12px;
+      font-weight: 500;
+    }
+
+    /* 顯示摺疊按鈕 */
+    .fold-btn {
+      display: block;
+      flex: none;
+      font-size: 1.5rem;
+    }
+
+    /* 第二上半部：詳細設定「無位移浮動覆蓋層」 */
+    #upper-part2 {
+      box-sizing: border-box;
+      background-color: rgba(230, 240, 255, 0.98);
+      border-bottom: 3px solid #4a90e2;
+      box-shadow: 0px 8px 16px rgba(0,0,0,0.25);
+      
+      position: absolute;
+      /* 剛好浮動釘在折疊按鈕的下緣（即影像區的最上方開始處） */
+      top: calc(100vh - 100vw); 
+      left: 0;
+      width: 100vw;
+      /* 最大高度限制在影像區域內，超過自動出捲軸，絕不推擠影像區 */
+      max-height: calc(100vw - 30px); 
+      overflow-y: auto;
+      padding: 25px;
+      z-index: 99;
+      font-size: 1.2rem;
+    }
+
+    #upper-part2 label {
+      width: 180px;
+      margin-bottom: 12px;
+    }
+    #upper-part2 input[type="text"], 
+    #upper-part2 input[type="number"] {
+      font-size: 1.2rem;
+      padding: 6px;
+      margin-bottom: 12px;
+      width: 160px;
+    }
+    #upper-part2 input[type="checkbox"] {
+      transform: scale(1.5);
+      margin-left: 8px;
+    }
+    
+    /* 下半部影像容器：1:1（800:800）極大化比例 */
+    #right {
+      width: 100vw;
+      height: 100vw !important; /* 強制寬高 1:1，最大化利用下方寬度空間 */
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px !important; /* 四周保留微邊框 */
+      margin: 0 !important;
+      background-color: #e2e8f0; 
+      box-sizing: border-box;
+      z-index: 1;
+      overflow: hidden;
+    }
+    
+    /* 影像 Canvas 填滿區域並保持比例 */
+    #right canvas {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain; /* 完美保持 800:800 內置比例 */
+      border: 2px solid #cbd5e1 !important; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08); 
+      background-color: #ffffff;
+    }
+    
+    #bottom {
+      display: none !important;
+    }
+  }
 </style>
 </head>
 <body>
 
-  
   <script src="../code/js/header.js"></script>
 
-  <br/>
-    <br/>
-      <br/>
-        <br/>
 <div id="container">
   <div id="left">
-    <!-- Settings inputs -->
-    <label>Settings JSON:</label>
-    <input id="settingsInput" type="file" accept=".json"><br/><br/>
+    
+    <div id="upper-part1">
+      <input id="fileInput" type="file" multiple><br/>
+      <button id="loadBtn">Load Image</button>
+      
+      <div id="opencvImportZone" style="display: none;">
+        <button class="btn-import" onclick="document.getElementById('cvFileInput').click()">匯入 OpenCV.js</button>
+        <input id="cvFileInput" type="file" style="display: none;">
+      </div>
+      
+      <div style="margin-top: 15px;">
+        <button id="downloadBtn" disabled>Download Aligned</button>
+        <button id="copyBtn" disabled>Copy Aligned</button>
+        <button id="copyDataUrlBtn" disabled>Copy Data URL</button>
+      </div>
+      <span id="copyStatus" style="font-size:0.9em;color:#333; display: block; margin-top: 6px;"></span>
+    </div>
 
-    <h3>Settings</h3>
-    <label>Save File:</label>
-    <input id="saveFile" type="text" value="Save"><br/>
+    <button class="fold-btn" id="toggleFoldBtn" onclick="toggleSettingsFold()">細部設定 / Settings ▼</button>
 
-    <label>Step File:</label>
-    <input id="stepFile" type="text" value="Step"><br/>
+    <div id="upper-part2">
+      <label>Settings JSON:</label>
+      <input id="settingsInput" type="file">
+      <br/><br/>
 
-    <label>PositionsTxt:</label>
-    <input id="positionsTxt" type="text" value="Pos"><br/>
+      <h3>Settings</h3>
+      <label>Save File:</label>
+      <input id="saveFile" type="text" value="Save"><br/>
 
-    <label>Save Pixels X:</label>
-    <input id="savePixelsX" type="number" value="2480"><br/>
+      <label>Step File:</label>
+      <input id="stepFile" type="text" value="Step"><br/>
 
-    <label>Save Pixels Y:</label>
-    <input id="savePixelsY" type="number" value="3508"><br/>
+      <label>PositionsTxt:</label>
+      <input id="positionsTxt" type="text" value="Pos"><br/>
 
-    <label>Search Percent:</label>
-    <input id="searchPercentBox" type="number" value="2" min="1" max="20"><br/>
+      <label>Save Pixels X:</label>
+      <input id="savePixelsX" type="number" value="2480"><br/>
 
-    <label>Step Required:</label>
-    <input id="stepRequired" type="checkbox"><br/><br/>
+      <label>Save Pixels Y:</label>
+      <input id="savePixelsY" type="number" value="3508"><br/>
 
-    <!-- Load image button below settings -->
-    <input id="fileInput" type="file" accept="image/*" multiple><br/>
-    <button id="loadBtn">Load Image</button>
-    <br/><br/>
+      <label>Search Percent:</label>
+      <input id="searchPercentBox" type="number" value="1.5" min="1" max="20"><br/>
 
-    <!-- Download aligned + copy buttons -->
-    <button id="downloadBtn" disabled>Download Aligned</button>
-    <button id="copyBtn" disabled>Copy Aligned</button>
-    <button id="copyDataUrlBtn" disabled>Copy Data URL</button>
-    <br/>
-    <span id="copyStatus" style="font-size:0.9em;color:#333;"></span>
+      <label>自適應純白靈敏度:</label>
+      <input id="whiteSensitivityBox" type="number" value="100" min="1" max="100"><br/>
+
+      <label>Step Required:</label>
+      <input id="stepRequired" type="checkbox"><br/><br/>
+    </div>
+    
   </div>
 
   <div id="right">
@@ -83,10 +296,105 @@
 <script>
     
 let cvReady = false;
-cv.onRuntimeInitialized = () => {
-  cvReady = true;
-  log("[INFO] OpenCV.js initialized");
-};
+
+// 摺疊控制
+function toggleSettingsFold() {
+  const panel = document.getElementById('upper-part2');
+  const btn = document.getElementById('toggleFoldBtn');
+  if (panel.style.display === 'block') {
+    panel.style.display = 'none';
+    btn.textContent = '細部設定 / Settings ▼';
+  } else {
+    panel.style.display = 'block';
+    btn.textContent = '收合設定 / Hide ▲';
+  }
+}
+
+// 橫直向切換排版檢測
+function checkOrientationLayout() {
+  const panel = document.getElementById('upper-part2');
+  if (window.innerWidth > window.innerHeight) {
+    panel.style.display = 'block'; 
+    panel.style.position = 'static'; 
+    panel.style.width = 'auto';
+    panel.style.boxShadow = 'none';
+    panel.style.borderBottom = 'none';
+  } else {
+    panel.style.position = 'absolute'; 
+    if (panel.style.display !== 'block') {
+      panel.style.display = 'none';
+    }
+  }
+}
+
+function initOpenCvHooks() {
+  if (typeof cv !== 'undefined') {
+    cv.onRuntimeInitialized = () => {
+      cvReady = true;
+      log("[INFO] OpenCV.js initialized via default path");
+      document.getElementById('opencvImportZone').style.display = 'none';
+    };
+    if (cv.Mat) {
+      cvReady = true;
+      log("[INFO] OpenCV.js already ready via default path");
+      document.getElementById('opencvImportZone').style.display = 'none';
+    }
+  } else {
+    log("[WARN] OpenCV.js not found at default location. Please import manually.");
+    document.getElementById('opencvImportZone').style.display = 'inline-block';
+  }
+}
+
+document.getElementById('cvFileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  log("[INFO] Importing manual file: " + file.name);
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    try {
+      const script = document.createElement('script');
+      script.text = event.target.result;
+      
+      window.cv = window.cv || {};
+      window.cv.onRuntimeInitialized = () => {
+        cvReady = true;
+        log("[INFO] Manual OpenCV layout built and initialized successfully!");
+        document.getElementById('opencvImportZone').style.display = 'none';
+      };
+
+      document.body.appendChild(script);
+
+      setTimeout(() => {
+        if (typeof cv !== 'undefined' && cv.Mat) {
+          cvReady = true;
+          log("[INFO] Manual OpenCV context environment initialized active.");
+          document.getElementById('opencvImportZone').style.display = 'none';
+        }
+      }, 1000);
+
+    } catch (err) {
+      log("[ERROR] Critical failure running manual execution data buffer payload.");
+    }
+  };
+  reader.readAsText(file);
+});
+
+window.addEventListener('load', () => {
+  initOpenCvHooks();
+  checkOrientationLayout();
+  adjustCanvasElementSize();
+});
+window.addEventListener('resize', () => {
+  checkOrientationLayout();
+  adjustCanvasElementSize();
+});
+
+function adjustCanvasElementSize() {
+  if (imgMat) {
+    redrawCanvas();
+  }
+}
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -96,7 +404,6 @@ let scale=1, offsetX=0, offsetY=0;
 let clicks = [];
 let refinedPoints = [];
 
-// settings object with defaults
 let settings = {
   save_file: "Save",
   step_file: "Step",
@@ -104,16 +411,18 @@ let settings = {
   save_pixels_x: 0,
   save_pixels_y: 0,
   search_percent: 2,
+  white_sensitivity: 100,
   StepRequired: true
 };
 
 function log(msg) {
   const logDiv = document.getElementById('log');
-  logDiv.textContent += msg + "\n";
-  logDiv.scrollTop = logDiv.scrollHeight;
+  if (logDiv) {
+    logDiv.textContent += msg + "\n";
+    logDiv.scrollTop = logDiv.scrollHeight;
+  }
 }
 
-// update settings object from UI
 function updateSettingsFromUI() {
   settings.save_file = document.getElementById('saveFile').value;
   settings.step_file = document.getElementById('stepFile').value;
@@ -121,16 +430,15 @@ function updateSettingsFromUI() {
   settings.save_pixels_x = parseInt(document.getElementById('savePixelsX').value);
   settings.save_pixels_y = parseInt(document.getElementById('savePixelsY').value);
   settings.search_percent = parseFloat(document.getElementById('searchPercentBox').value);
+  settings.white_sensitivity = parseFloat(document.getElementById('whiteSensitivityBox').value);
   settings.StepRequired = document.getElementById('stepRequired').checked;
   log("[INFO] Settings updated from UI: " + JSON.stringify(settings));
 }
 
-// initialize settings from UI on page load
 window.addEventListener('DOMContentLoaded', () => {
   updateSettingsFromUI();
 });
 
-// update UI from settings object
 function updateUIFromSettings() {
   document.getElementById('saveFile').value = settings.save_file;
   document.getElementById('stepFile').value = settings.step_file;
@@ -138,14 +446,13 @@ function updateUIFromSettings() {
   document.getElementById('savePixelsX').value = settings.save_pixels_x;
   document.getElementById('savePixelsY').value = settings.save_pixels_y;
   document.getElementById('searchPercentBox').value = settings.search_percent;
+  document.getElementById('whiteSensitivityBox').value = settings.white_sensitivity;
   document.getElementById('stepRequired').checked = settings.StepRequired;
 }
 
-// attach listeners to settings inputs
-document.querySelectorAll('#saveFile,#stepFile,#positionsTxt,#savePixelsX,#savePixelsY,#searchPercentBox,#stepRequired')
+document.querySelectorAll('#saveFile,#stepFile,#positionsTxt,#savePixelsX,#savePixelsY,#searchPercentBox,#whiteSensitivityBox,#stepRequired')
   .forEach(el => el.addEventListener('input', updateSettingsFromUI));
 
-// load settings.json
 document.getElementById('settingsInput').addEventListener('change', async e=>{
   const file = e.target.files[0];
   if (!file) return;
@@ -161,7 +468,7 @@ document.getElementById('settingsInput').addEventListener('change', async e=>{
 });
 
 document.getElementById('loadBtn').addEventListener('click', async () => {
-  if (!cvReady) { log("[ERROR] OpenCV not ready yet."); return; }
+  if (!cvReady) { log("[ERROR] OpenCV not ready yet. Please check path or import file manually."); return; }
   const file = document.getElementById('fileInput').files[0];
   if (!file) { log("[ERROR] No file selected."); return; }
   log("[INFO] Loading " + file.name);
@@ -170,19 +477,29 @@ document.getElementById('loadBtn').addEventListener('click', async () => {
   redrawCanvas();
   log("[INFO] Image ready. Tap or click 4 corners (LT, RT, RB, LB).");
 });
-// Use pointer events for cross‑device input
+
+// 精確的點擊座標還原公式
 canvas.addEventListener('pointerdown', e => {
   if (!imgMat) return;
+  
   const rect = canvas.getBoundingClientRect();
-  // Normalize coordinates to canvas space
-  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-  const ix = Math.round((x - offsetX)/scale);
-  const iy = Math.round((y - offsetY)/scale);
-  clicks.push({x:ix,y:iy});
-  log(`[INFO] Pointer ${clicks.length}/4 display=(${x},${y}) -> image=(${ix},${iy})`);
+  const clientXInsideCanvas = e.clientX - rect.left;
+  const clientYInsideCanvas = e.clientY - rect.top;
+  
+  const cssScaleX = canvas.width / rect.width;
+  const cssScaleY = canvas.height / rect.height;
+  
+  const canvasX = clientXInsideCanvas * cssScaleX;
+  const canvasY = clientYInsideCanvas * cssScaleY;
+  
+  const ix = Math.round((canvasX - offsetX) / scale);
+  const iy = Math.round((canvasY - offsetY) / scale);
+  
+  clicks.push({x: ix, y: iy});
+  log(`[INFO] Pointer ${clicks.length}/4 -> Real Image Coordinate = (${ix}, ${iy})`);
   redrawCanvas();
-  if (clicks.length===4) {
+  
+  if (clicks.length === 4) {
     log("[INFO] 4 points clicked. Refining corners...");
     refineAndTransform();
   }
@@ -199,7 +516,6 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
     URL.revokeObjectURL(url);
     log("[INFO] Final aligned image downloaded.");
 
-    // StepRequired: also download step image + positions
     if (settings.StepRequired) {
       const stepCanvas = document.createElement('canvas');
       stepCanvas.width = canvas.width;
@@ -208,7 +524,6 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
       redrawCanvas();
       stepCtx.drawImage(canvas,0,0);
 
-      // draw refined points as blue X marks
       stepCtx.strokeStyle="blue";
       stepCtx.lineWidth=2;
       for (const p of refinedPoints) {
@@ -260,7 +575,6 @@ document.getElementById('copyDataUrlBtn').addEventListener('click', async () => 
     return; 
   }
 
-  // Stage 1: show "Copying..."
   document.getElementById('copyStatus').textContent = "Copying...";
 
   const blob = await matToBlob(alignedMat, "jpeg", 0.7);
@@ -269,8 +583,6 @@ document.getElementById('copyDataUrlBtn').addEventListener('click', async () => 
     const dataUrl = reader.result;
     try {
       await navigator.clipboard.writeText(dataUrl);
-
-      // Stage 3: show "Done!"
       document.getElementById('copyStatus').textContent = "✅ Done! Data URL copied.";
       log("[INFO] Data URL copied to clipboard.");
     } catch (err) {
@@ -289,8 +601,60 @@ async function loadCvMatFromFile(file) {
       log(`[INFO] Decoded image size: ${image.width}x${image.height}`);
       const c = document.createElement('canvas');
       c.width = image.width; c.height = image.height;
-      c.getContext('2d').drawImage(image,0,0);
-      const id = c.getContext('2d').getImageData(0,0,c.width,c.height);
+      const tempCtx = c.getContext('2d');
+      tempCtx.drawImage(image,0,0);
+      
+      const imgData = tempCtx.getImageData(0, 0, c.width, c.height);
+      const data = imgData.data;
+      const width = c.width;
+      const height = c.height;
+
+      const gray = new Uint8ClampedArray(width * height);
+      for (let i = 0; i < data.length; i += 4) {
+          gray[i/4] = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+      }
+
+      const tParam = parseFloat(document.getElementById('whiteSensitivityBox').value) || 100;
+      const blockSize = Math.max(16, Math.floor(Math.min(width, height) / 12));
+      const bgLightness = new Uint8ClampedArray(width * height);
+      
+      for (let y = 0; y < height; y += blockSize) {
+          for (let x = 0; x < width; x += blockSize) {
+              let maxVal = 0;
+              const rMax = Math.min(y + blockSize, height);
+              const cMax = Math.min(x + blockSize, width);
+              
+              for (let by = y; by < rMax; by++) {
+                  for (let bx = x; bx < cMax; bx++) {
+                      const val = gray[by * width + bx];
+                      if (val > maxVal) maxVal = val;
+                  }
+              }
+              for (let by = y; by < rMax; by++) {
+                  for (let bx = x; bx < cMax; bx++) {
+                      bgLightness[by * width + bx] = maxVal;
+                  }
+              }
+          }
+      }
+
+      for (let i = 0; i < data.length; i += 4) {
+          const idx = i / 4;
+          const currentGray = gray[idx];
+          const localBg = bgLightness[idx];
+
+          let ratio = localBg > 0 ? (currentGray / localBg) : 1.0;
+          const adaptiveCutoff = 1.0 - (tParam / 220);
+          
+          if (ratio > adaptiveCutoff) {
+              data[i] = 255;
+              data[i+1] = 255;
+              data[i+2] = 255;
+          }
+      }
+      tempCtx.putImageData(imgData, 0, 0);
+
+      const id = tempCtx.getImageData(0, 0, c.width, c.height);
       const mat = cv.matFromImageData(id);
       URL.revokeObjectURL(url);
       resolve(mat);
@@ -306,7 +670,8 @@ function drawImage(mat) {
   const scaledW = Math.round(w*scale), scaledH = Math.round(h*scale);
   offsetX = (canvas.width-scaledW)/2;
   offsetY = (canvas.height-scaledH)/2;
-  let rgba = new cv.Mat(); cv.cvtColor(mat, rgba, cv.COLOR_BGR2RGBA);
+  let rgba = new cv.Mat();
+  cv.cvtColor(mat, rgba, cv.COLOR_BGR2RGBA);
   let id = new ImageData(new Uint8ClampedArray(rgba.data), w, h);
   ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
   let tmp = document.createElement('canvas'); tmp.width=w; tmp.height=h;
@@ -318,7 +683,6 @@ function drawImage(mat) {
 function redrawCanvas() {
   if (!imgMat) return;
   drawImage(imgMat);
-  // red dots
   ctx.fillStyle="red";
   for (const p of clicks) {
     const dx = p.x*scale + offsetX;
@@ -327,7 +691,6 @@ function redrawCanvas() {
     ctx.arc(dx,dy,6,0,Math.PI*2);
     ctx.fill();
   }
-  // green boxes
   const percent = settings.search_percent/100.0;
   const searchRadius = Math.round(percent * Math.max(imgMat.cols,imgMat.rows));
   ctx.strokeStyle="darkgreen";
@@ -352,7 +715,6 @@ function refineAndTransform() {
   const percent = settings.search_percent/100.0;
   const searchRadius = Math.round(percent * Math.max(imgW,imgH));
   log(`[INFO] Refining with search radius ${searchRadius}px`);
-
   for (let i=0;i<clicks.length;i++) {
     const px=clicks[i].x, py=clicks[i].y;
     const x1=Math.max(px-searchRadius,0), y1=Math.max(py-searchRadius,0);
@@ -369,18 +731,17 @@ function refineAndTransform() {
       }
       const rect=cv.boundingRect(contours.get(maxIdx));
       const bx=x1+rect.x, by=y1+rect.y, bw=rect.width, bh=rect.height;
-      if(i===0) refinedPoints.push({x:bx,y:by});             // LT
-      else if(i===1) refinedPoints.push({x:bx+bw,y:by});     // RT
-      else if(i===2) refinedPoints.push({x:bx+bw,y:by+bh});  // RB
-      else if(i===3) refinedPoints.push({x:bx,y:by+bh});     // LB
+      if(i===0) refinedPoints.push({x:bx,y:by});
+      else if(i===1) refinedPoints.push({x:bx+bw,y:by});
+      else if(i===2) refinedPoints.push({x:bx+bw,y:by+bh});
+      else if(i===3) refinedPoints.push({x:bx,y:by+bh});
     } else {
-      refinedPoints.push({x:px,y:py}); // fallback
+      refinedPoints.push({x:px,y:py});
     }
     roi.delete(); contours.delete(); hier.delete();
   }
 
   log("[INFO] Refined points: " + JSON.stringify(refinedPoints));
-    // Perspective transform
   let bgr = new cv.Mat();
   cv.cvtColor(imgMat, bgr, cv.COLOR_RGBA2BGR);
   alignedMat = new cv.Mat();
@@ -399,7 +760,6 @@ function refineAndTransform() {
   const M = cv.getPerspectiveTransform(srcPts,dstPts);
   cv.warpPerspective(bgr, alignedMat, M, new cv.Size(bgr.cols,bgr.rows));
 
-  // Resize output if requested
   if (settings.save_pixels_x > 0 && settings.save_pixels_y > 0) {
     let resized = new cv.Mat();
     cv.resize(alignedMat, resized, new cv.Size(settings.save_pixels_x, settings.save_pixels_y));
@@ -414,10 +774,10 @@ function refineAndTransform() {
   document.getElementById('copyBtn').disabled = false;
   document.getElementById('copyDataUrlBtn').disabled = false;
 
-  srcPts.delete(); dstPts.delete(); M.delete(); bgr.delete(); thresh.delete();
+  srcPts.delete();
+  dstPts.delete(); M.delete(); bgr.delete(); thresh.delete();
 }
 
-// helper to convert cv.Mat to PNG blob
 function matToBlob(mat) {
   let rgba = new cv.Mat();
   cv.cvtColor(mat, rgba, cv.COLOR_BGR2RGBA);
