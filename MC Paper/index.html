@@ -709,8 +709,6 @@
         <div class="controls">
             <div class="input-group-row">
                 <button class="btn-paste" onclick="pasteImage()">📋 PASTE CLIPBOARD</button>
-                <button class="btn-paste" style="background: #2980b9;" onclick="pasteStorage()">📋 PASTE
-                    STORAGE</button>
                 <label class="file-label">📁 OPEN IMAGE<input type="file" id="upload" accept="image/*"></label>
             </div>
             <div class="input-group-row">
@@ -746,44 +744,12 @@
         const modalBody = document.getElementById('modalBody');
         const modalOverlay = document.getElementById('modalOverlay');
         const hoverTip = document.getElementById('hoverCoord');
-
         let originalImg = null, configData = null;
         let answerKey = [];
 
         let mcStats = { correct: 0, wrong: 0, multiple: 0, blank: 0, total: 0, excluded: 0 };
 
         let isPrivacyChecked = false; // MUST be at the top of your <script>
-
-        let mcDB = null; // [新功能] 定義資料庫變數
-
-        // [新功能] 步驟 1: 初始化 IndexedDB
-        function initIndexedDB() {
-            const request = indexedDB.open("ScannerDB", 1);
-            request.onsuccess = (e) => {
-                mcDB = e.target.result;
-                console.log("Database connected successfully");
-            };
-        }
-        async function pasteStorage() {
-            if (!mcDB) {
-                alert("資料庫連線中，請稍候...");
-                return;
-            }
-            const transaction = mcDB.transaction("images", "readonly");
-            const store = transaction.objectStore("images");
-            const request = store.get("saved_photo");
-
-            request.onsuccess = () => {
-                const record = request.result;
-                if (record && record.data) {
-                    // 直接將 Blob 轉為 URL，不需 Base64
-                    loadImage(URL.createObjectURL(record.data));
-                } else {
-                    alert("找不到已儲存的照片！");
-                }
-            };
-        }
-
         async function pasteAnswerKey() {
             let text = "";
             try {
@@ -1744,10 +1710,6 @@
                 isResizing = false;
                 document.body.style.cursor = ''; // Reset cursor
             }
-        });
-        window.addEventListener('DOMContentLoaded', () => {
-            initIndexedDB();
-            // ... 原本其他的啟動邏輯 ...
         });
         // Run the directory check immediately when the page finishes rendering
         scanJsonFolder();
