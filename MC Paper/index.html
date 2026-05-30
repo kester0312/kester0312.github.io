@@ -708,9 +708,10 @@
 
         <div class="controls">
             <div class="input-group-row">
-                <button class="btn-paste" onclick="pasteImage()">📋 PASTE CLIPBOARD</button>
-                <label class="file-label">📁 OPEN IMAGE<input type="file" id="upload" accept="image/*"></label>
-            </div>
+    <button class="btn-paste" onclick="pasteImage()">📋 PASTE CLIPBOARD</button>
+    <button class="btn-paste" style="background: #2980b9;" onclick="pasteCookies()">📋 PASTE COOKIES</button>
+    <label class="file-label">📁 OPEN IMAGE<input type="file" id="upload" accept="image/*"></label>
+</div>
             <div class="input-group-row">
                 <label class="json-label">📄 IMPORT JSON<input type="file" id="jsonInput" accept=".json"></label>
                 <select id="layoutDropdown" class="dropdown-select">
@@ -1711,6 +1712,28 @@
                 document.body.style.cursor = ''; // Reset cursor
             }
         });
+        function pasteCookies() {
+    try {
+        // 從本機快取讀取照片的 Base64 文字字串
+        const savedData = localStorage.getItem('mc_saved_photo');
+        
+        if (!savedData) {
+            alert("No saved photo found in storage! (請先在照片編輯器中點擊 'Save cookies')");
+            return;
+        }
+
+        // 確認字串開頭是否為合法的圖片編碼格式
+        if (savedData.trim().startsWith('data:image')) {
+            // 直接調用系統原有的核心載入機制
+            loadImage(savedData.trim());
+        } else {
+            alert("Saved file data format is invalid.");
+        }
+    } catch (err) {
+        console.error("Error reading from localStorage:", err);
+        alert("Unable to read saved photo from storage.");
+    }
+}
         // Run the directory check immediately when the page finishes rendering
         scanJsonFolder();
     </script>
