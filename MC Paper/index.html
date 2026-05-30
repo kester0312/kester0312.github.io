@@ -708,10 +708,11 @@
 
         <div class="controls">
             <div class="input-group-row">
-    <button class="btn-paste" onclick="pasteImage()">📋 PASTE CLIPBOARD</button>
-    <button class="btn-paste" style="background: #2980b9;" onclick="pasteCookies()">📋 PASTE COOKIES</button>
-    <label class="file-label">📁 OPEN IMAGE<input type="file" id="upload" accept="image/*"></label>
-</div>
+                <button class="btn-paste" onclick="pasteImage()">📋 PASTE CLIPBOARD</button>
+                <button class="btn-paste" style="background: #2980b9;" onclick="pasteStorage()">📋 PASTE
+                    STORAGE</button>
+                <label class="file-label">📁 OPEN IMAGE<input type="file" id="upload" accept="image/*"></label>
+            </div>
             <div class="input-group-row">
                 <label class="json-label">📄 IMPORT JSON<input type="file" id="jsonInput" accept=".json"></label>
                 <select id="layoutDropdown" class="dropdown-select">
@@ -1713,29 +1714,105 @@
             }
         });
         function pasteCookies() {
-    try {
-        // 從本機快取讀取照片的 Base64 文字字串
-        const savedData = localStorage.getItem('mc_saved_photo');
-        
-        if (!savedData) {
-            alert("No saved photo found in storage! (請先在照片編輯器中點擊 'Save cookies')");
-            return;
-        }
+            try {
+                // 從本機快取讀取照片的 Base64 文字字串
+                const savedData = localStorage.getItem('mc_saved_photo');
 
-        // 確認字串開頭是否為合法的圖片編碼格式
-        if (savedData.trim().startsWith('data:image')) {
-            // 直接調用系統原有的核心載入機制
-            loadImage(savedData.trim());
-        } else {
-            alert("Saved file data format is invalid.");
+                if (!savedData) {
+                    alert("No saved photo found in storage! (請先在照片編輯器中點擊 'Save cookies')");
+                    return;
+                }
+
+                // 確認字串開頭是否為合法的圖片編碼格式
+                if (savedData.trim().startsWith('data:image')) {
+                    // 直接調用系統原有的核心載入機制
+                    loadImage(savedData.trim());
+                } else {
+                    alert("Saved file data format is invalid.");
+                }
+            } catch (err) {
+                console.error("Error reading from localStorage:", err);
+                alert("Unable to read saved photo from storage.");
+            }
         }
+        
+        // ==========================================
+// INDEXEDDB 核心讀取機制 (對齊 ScannerDB)
+// ==========================================
+let mcDB = null;
+
+// 1. 頁面載入時自動初始化，連線到同事定義的 "ScannerDB"
+function initIndexedDB() {
+    // 這裡改為打開 "ScannerDB"
+    const request = indexedDB.open("ScannerDB", 1);
+
+    // 如果主系統先被打開而資料庫不存在，建立對應的 images 空間
+    request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("images")) {
+            db.createObjectStore("images", { keyPath: "id" });
+        }
+    };
+
+    request.onsuccess = (e) => {
+        mcDB = e.target.result;
+        console.log("IndexedDB (ScannerDB) 連線成功，已準備好與照片編輯器連通。");
+    };
+
+    request.onerror = (e) => {
+        console.error("IndexedDB 連線失敗:", e.target.error);
+    };
+}
+
+// 2. 點擊 "📋 PASTE STORAGE" 按鈕時觸發的讀取與還原
+function pasteStorage() {
+    if (!mcDB) {
+        alert("資料庫連線中或未建立，請稍候再試。");
+        return;
+    }
+
+    try {
+        // 啟動唯讀交易機制
+        const transaction = mcDB.transaction("images", "readonly");
+        const store = transaction.objectStore("images");
+        
+        // 抓取鍵值為 "saved_photo" 的那筆紀錄
+        const getRequest = store.get("saved_photo");
+
+        getRequest.onsuccess = () => {
+            const record = getRequest.result;
+            
+            // 安全防護：檢查有沒有這筆資料，以及裡面有沒有二進位 Blob 檔案
+            if (!record || !record.data) {
+                alert("找不到已儲存的照片！\n(請先在照片編輯器中點擊 'Save' 存入資料庫)");
+                return;
+            }
+
+            // 直接撈出二進位 Blob 物件
+            const blobData = record.data;
+
+            // 產生一個臨時的 Object URL 路徑 (不耗費多餘記憶體轉字串)
+            const blobUrl = URL.createObjectURL(blobData);
+
+            // 傳入主系統原有的核心載入機制，自動繪製並觸發掃描
+            loadImage(blobUrl);
+            
+            console.log("成功從 ScannerDB 讀取並還原 Blob 圖片！");
+        };
+
+        getRequest.onerror = (e) => {
+            console.error("讀取資料庫時出錯:", e.target.error);
+            alert("無法自 ScannerDB 撈取資料。");
+        };
+
     } catch (err) {
-        console.error("Error reading from localStorage:", err);
-        alert("Unable to read saved photo from storage.");
+        console.error("執行異常:", err);
+        alert("讀取本機儲存空間失敗。");
     }
 }
-        // Run the directory check immediately when the page finishes rendering
-        scanJsonFolder();
+
+// 確保網頁一渲染完畢立刻建立連線
+window.addEventListener('DOMContentLoaded', initIndexedDB);
     </script>
 </body>
 
