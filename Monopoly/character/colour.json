@@ -1,0 +1,8 @@
+{
+    "White" : "#FFFFFF",
+    "Yellow" : "#FFFF00",
+    "Orange" : [255, 165, 0],
+    "Light Green" : "#00ffa6",
+    "Green" : "#008000",
+    "Blue" : [0, 0, 255]
+}

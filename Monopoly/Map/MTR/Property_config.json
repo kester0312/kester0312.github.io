@@ -1,0 +1,328 @@
+{
+  "Brown": {
+    "colour": "#8b563c",
+    "Property": {
+      "屯門": {
+        "Price": 60,
+        "Rent": 2,
+        "Rent_with_colour_set": 4,
+        "Rent_with_House": [10, 30, 90, 160],
+        "House_cost": 50,
+        "Rent_with_Hotel": 250,
+        "Hotel_cost": 50,
+        "Image": "icon/Property/屯門.png",
+        "Mortgage_Price": 30
+      },
+      "元朗": {
+        "Price": 60,
+        "Rent": 4,
+        "Rent_with_colour_set": 8,
+        "Rent_with_House": [20, 60, 180, 320],
+        "House_cost": 50,
+        "Rent_with_Hotel": 450,
+        "Hotel_cost": 50,
+        "Image": "icon/Property/元朗.png",
+        "Mortgage_Price": 30
+      }
+    }
+  },
+  "Lightblue": {
+    "colour": "#b5dff7",
+    "Property": {
+      "大埔墟": {
+        "Price": 100,
+        "Rent": 6,
+        "Rent_with_colour_set": 12,
+        "Rent_with_House": [30, 90, 270, 400],
+        "House_cost": 50,
+        "Rent_with_Hotel": 550,
+        "Hotel_cost": 50,
+        "Image": "icon/Property/大埔墟.png",
+        "Mortgage_Price": 50
+      },
+      "大圍": {
+        "Price": 100,
+        "Rent": 6,
+        "Rent_with_colour_set": 12,
+        "Rent_with_House": [30, 90, 270, 400],
+        "House_cost": 50,
+        "Rent_with_Hotel": 550,
+        "Hotel_cost": 50,
+        "Image": "icon/Property/大圍.png",
+        "Mortgage_Price": 50
+      },
+      "紅磡": {
+        "Price": 120,
+        "Rent": 8,
+        "Rent_with_colour_set": 16,
+        "Rent_with_House": [40, 100, 300, 450],
+        "House_cost": 50,
+        "Rent_with_Hotel": 600,
+        "Hotel_cost": 50,
+        "Image": "icon/Property/紅磡.png",
+        "Mortgage_Price": 60
+      }
+    }
+  },
+  "Pink": {
+    "colour": "#c74892",
+    "Property": {
+      "寶琳": {
+        "Price": 140,
+        "Rent": 10,
+        "Rent_with_colour_set": 20,
+        "Rent_with_House": [50, 150, 450, 625],
+        "House_cost": 100,
+        "Rent_with_Hotel": 750,
+        "Hotel_cost": 100,
+        "Image": "icon/Property/寶琳.png",
+        "Mortgage_Price": 70
+      },
+      "將軍澳": {
+        "Price": 140,
+        "Rent": 10,
+        "Rent_with_colour_set": 20,
+        "Rent_with_House": [50, 150, 450, 625],
+        "House_cost": 100,
+        "Rent_with_Hotel": 750,
+        "Hotel_cost": 100,
+        "Image": "icon/Property/將軍澳.png",
+        "Mortgage_Price": 70
+      },
+      "調景嶺": {
+        "Price": 160,
+        "Rent": 12,
+        "Rent_with_colour_set": 24,
+        "Rent_with_House": [60, 180, 500, 700],
+        "House_cost": 100,
+        "Rent_with_Hotel": 900,
+        "Hotel_cost": 100,
+        "Image": "icon/Property/調景嶺.png",
+        "Mortgage_Price": 80
+      }
+    }
+  },
+  "Orange": {
+    "colour": "#e9993e",
+    "Property": {
+      "東涌": {
+        "Price": 180,
+        "Rent": 14,
+        "Rent_with_colour_set": 28,
+        "Rent_with_House": [70, 200, 550, 750],
+        "House_cost": 100,
+        "Rent_with_Hotel": 950,
+        "Hotel_cost": 100,
+        "Image": "icon/Property/東涌.png",
+        "Mortgage_Price": 90
+      },
+      "青衣": {
+        "Price": 180,
+        "Rent": 14,
+        "Rent_with_colour_set": 28,
+        "Rent_with_House": [70, 200, 550, 750],
+        "House_cost": 100,
+        "Rent_with_Hotel": 950,
+        "Hotel_cost": 100,
+        "Image": "icon/Property/青衣.png",
+        "Mortgage_Price": 90
+      },
+      "奥運": {
+        "Price": 200,
+        "Rent": 16,
+        "Rent_with_colour_set": 32,
+        "Rent_with_House": [80, 220, 600, 800],
+        "House_cost": 100,
+        "Rent_with_Hotel": 1000,
+        "Hotel_cost": 100,
+        "Image": "icon/Property/奥運.png",
+        "Mortgage_Price": 100
+      }
+    }
+  },
+  "Red": {
+    "colour": "#da3832",
+    "Property": {
+      "荃灣": {
+        "Price": 220,
+        "Rent": 18,
+        "Rent_with_colour_set": 36,
+        "Rent_with_House": [90, 250, 700, 875],
+        "House_cost": 150,
+        "Rent_with_Hotel": 1050,
+        "Hotel_cost": 150,
+        "Image": "icon/Property/荃灣.png",
+        "Mortgage_Price": 110
+      },
+      "旺角": {
+        "Price": 220,
+        "Rent": 18,
+        "Rent_with_colour_set": 36,
+        "Rent_with_House": [90, 250, 700, 875],
+        "House_cost": 150,
+        "Rent_with_Hotel": 1050,
+        "Hotel_cost": 150,
+        "Image": "icon/Property/旺角.png",
+        "Mortgage_Price": 110
+      },
+      "尖沙咀": {
+        "Price": 240,
+        "Rent": 20,
+        "Rent_with_colour_set": 40,
+        "Rent_with_House": [100, 300, 750, 925],
+        "House_cost": 150,
+        "Rent_with_Hotel": 1100,
+        "Hotel_cost": 150,
+        "Image": "icon/Property/尖沙咀.png",
+        "Mortgage_Price": 120
+      }
+    }
+  },
+  "Yellow": {
+    "colour": "#fcf350",
+    "Property": {
+      "海怡半島": {
+        "Price": 260,
+        "Rent": 22,
+        "Rent_with_colour_set": 44,
+        "Rent_with_House": [110, 330, 800, 975],
+        "House_cost": 150,
+        "Rent_with_Hotel": 1150,
+        "Hotel_cost": 150,
+        "Image": "icon/Property/海怡半島.png",
+        "Mortgage_Price": 130
+      },
+      "利東": {
+        "Price": 260,
+        "Rent": 22,
+        "Rent_with_colour_set": 44,
+        "Rent_with_House": [110, 330, 800, 975],
+        "House_cost": 150,
+        "Rent_with_Hotel": 1150,
+        "Hotel_cost": 150,
+        "Image": "icon/Property/利東.png",
+        "Mortgage_Price": 130
+      },
+      "黃竹坑": {
+        "Price": 280,
+        "Rent": 24,
+        "Rent_with_colour_set": 48,
+        "Rent_with_House": [120, 360, 850, 1025],
+        "House_cost": 150,
+        "Rent_with_Hotel": 1200,
+        "Hotel_cost": 150,
+        "Image": "icon/Property/黃竹坑.png",
+        "Mortgage_Price": 140
+      }
+    }
+  },
+  "Green": {
+    "colour": "#54b063",
+    "Property": {
+      "觀塘": {
+        "Price": 300,
+        "Rent": 26,
+        "Rent_with_colour_set": 52,
+        "Rent_with_House": [130, 390, 900, 1100],
+        "House_cost": 200,
+        "Rent_with_Hotel": 1275,
+        "Hotel_cost": 200,
+        "Image": "icon/Property/觀塘.png",
+        "Mortgage_Price": 150
+      },
+      "九龍塘": {
+        "Price": 300,
+        "Rent": 26,
+        "Rent_with_colour_set": 52,
+        "Rent_with_House": [130, 390, 900, 1100],
+        "House_cost": 200,
+        "Rent_with_Hotel": 1275,
+        "Hotel_cost": 200,
+        "Image": "icon/Property/九龍塘.png",
+        "Mortgage_Price": 150
+      },
+      "何文田": {
+        "Price": 320,
+        "Rent": 28,
+        "Rent_with_colour_set": 56,
+        "Rent_with_House": [150, 450, 1000, 1200],
+        "House_cost": 200,
+        "Rent_with_Hotel": 1400,
+        "Hotel_cost": 200,
+        "Image": "icon/Property/何文田.png",
+        "Mortgage_Price": 160
+      }
+    }
+  },
+  "Blue": {
+    "colour": "#306fb7",
+    "Property": {
+      "堅尼地城": {
+        "Price": 350,
+        "Rent": 35,
+        "Rent_with_colour_set": 70,
+        "Rent_with_House": [175, 500, 1100, 1300],
+        "House_cost": 200,
+        "Rent_with_Hotel": 1500,
+        "Hotel_cost": 200,
+        "Image": "icon/Property/堅尼地城.png",
+        "Mortgage_Price": 175
+      },
+      "金鐘": {
+        "Price": 400,
+        "Rent": 50,
+        "Rent_with_colour_set": 100,
+        "Rent_with_House": [200, 600, 1400, 1700],
+        "House_cost": 200,
+        "Rent_with_Hotel": 2000,
+        "Hotel_cost": 200,
+        "Image": "icon/Property/金鐘.png",
+        "Mortgage_Price": 200
+      }
+    }
+  },
+  "Station": {
+    "colour": "#f0f0f0",
+    "Property": {
+      "八鄉車廠": {
+        "Price": 200,
+        "Rent_with_station": [25, 50, 100, 200],
+        "Image": "icon/Property/八鄉車廠.png",
+        "Mortgage_Price": 100
+      },
+      "將軍澳車廠": {
+        "Price": 200,
+        "Rent_with_station": [25, 50, 100, 200],
+        "Image": "icon/Property/將軍澳車廠.png",
+        "Mortgage_Price": 100
+      },
+      "黃竹坑車廠": {
+        "Price": 200,
+        "Rent_with_station": [25, 50, 100, 200],
+        "Image": "icon/Property/黃竹坑車廠.png",
+        "Mortgage_Price": 100
+      },
+      "九龍灣車廠": {
+        "Price": 200,
+        "Rent_with_station": [25, 50, 100, 200],
+        "Image": "icon/Property/九龍灣車廠.png",
+        "Mortgage_Price": 100
+      }
+    }
+  },
+  "ElectricCompanyAndWaterWorks": {
+    "colour": "#9f9fa1",
+    "Property": {
+      "港鐵商場": {
+        "Price": 150,
+        "Image": "icon/Property/港鐵商場.png",
+        "Mortgage_Price": 75
+      },
+      "港鐵程式": {
+        "Price": 150,
+        "Image": "icon/Property/港鐵程式.png",
+        "Mortgage_Price": 75
+      }
+    }
+  }
+}

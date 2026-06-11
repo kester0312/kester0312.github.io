@@ -1,0 +1,8 @@
+{
+  "House" : ["路軌", "rail"],
+  "Hotel" : ["車站", "station"],
+  "Chance" : ["客服中心", "Customer Service Centre"],
+  "CommunityChest" : ["關愛站", "Community Care"],
+  "IncomeTax" : ["港鐵商場", "Course Fee"],
+  "LuxuryTax" : ["投資", "Investment"]
+}
