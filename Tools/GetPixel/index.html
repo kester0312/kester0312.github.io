@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All-Ratio Adaptive Calculator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #121212;
+      padding: 2vmin;
+      overflow: hidden; /* Prevents scrollbars across awkward resizing */
+    }
+
+    .calculator {
+      /* Scales purely based on the available space, regardless of landscape vs portrait */
+      width: 90vmin;
+      max-width: 420px; /* Upper limit for massive desktop screens */
+      background-color: #1c1c1e;
+      border-radius: 6vmin;
+      padding: 5vmin;
+      box-shadow: 0px 2vmin 5vmin rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Display Area */
+    .display {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+      height: 22vmin;
+      max-height: 120px;
+      padding: 2vmin;
+      margin-bottom: 4vmin;
+      overflow: hidden;
+    }
+
+    .previous-operand {
+      color: #8e8e93;
+      font-size: clamp(0.9rem, 3vmin, 1.3rem);
+      margin-bottom: 0.5vmin;
+      min-height: 1.5rem;
+    }
+
+    .current-operand {
+      color: #ffffff;
+      font-size: clamp(1.8rem, 7.5vmin, 3.2rem);
+      font-weight: 300;
+      word-wrap: break-word;
+      word-break: break-all;
+    }
+
+    /* Grid Layout */
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3vmin; 
+    }
+
+    /* Button Styling */
+    button {
+      border: none;
+      border-radius: 50%;
+      aspect-ratio: 1;
+      font-size: clamp(1.1rem, 4.5vmin, 1.8rem);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s ease, transform 0.05s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    /* Number & Period Buttons */
+    .btn-num {
+      background-color: #3a3a3c;
+      color: #ffffff;
+    }
+    .btn-num:hover {
+      background-color: #4a4a4c;
+    }
+
+    /* Operator Buttons */
+    .btn-op {
+      background-color: #ff9f0a;
+      color: #ffffff;
+    }
+    .btn-op:hover {
+      background-color: #ffb340;
+    }
+
+    /* Action Buttons */
+    .btn-action {
+      background-color: #a2a2a7;
+      color: #000000;
+    }
+    .btn-action:hover {
+      background-color: #c7c7cc;
+    }
+
+    /* Wide button for Zero */
+    .btn-zero {
+      grid-column: span 2;
+      border-radius: 100px;
+      aspect-ratio: auto;
+      height: 100%;
+      justify-content: flex-start;
+      padding-left: 6vmin;
+    }
+
+    /* Extreme aspect ratio optimization (e.g. ultra-wide landscapes or splitting screens) */
+    @media (max-aspect-ratio: 1/2), (min-aspect-ratio: 2/1) {
+      .calculator {
+        width: 80vmin;
+        padding: 4vmin;
+      }
+      .buttons {
+        gap: 2vmin;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="calculator">
+    <div class="display">
+      <div class="previous-operand">125 × 4</div>
+      <div class="current-operand">500</div>
+    </div>
+    
+    <div class="buttons">
+      <button class="btn-action">AC</button>
+      <button class="btn-action">±</button>
+      <button class="btn-action">%</button>
+      <button class="btn-op">÷</button>
+
+      <button class="btn-num">7</button>
+      <button class="btn-num">8</button>
+      <button class="btn-num">9</button>
+      <button class="btn-op">×</button>
+
+      <button class="btn-num">4</button>
+      <button class="btn-num">5</button>
+      <button class="btn-num">6</button>
+      <button class="btn-op">−</button>
+
+      <button class="btn-num">1</button>
+      <button class="btn-num">2</button>
+      <button class="btn-num">3</button>
+      <button class="btn-op">+</button>
+
+      <button class="btn-num btn-zero">0</button>
+      <button class="btn-num">.</button>
+      <button class="btn-op">=</button>
+    </div>
+  </div>
+
+</body>
+</html>

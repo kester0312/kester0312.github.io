@@ -1150,6 +1150,17 @@
                     const coords = arr.slice(0, -1);
                     let detected = [], rowBubbles = [];
 
+                    // Safety fallback detection for LetterCustom errors or duplicates
+                    let useFallback = false;
+                    if (rule.includes("|")) {
+                        const parts = rule.split('|').slice(1).map(s => s.trim());
+                        const hasSlash = parts.some(p => p === "/");
+                        const hasDuplicates = new Set(parts).size !== parts.length;
+                        if (hasSlash || hasDuplicates) {
+                            useFallback = true;
+                        }
+                    }
+
                     coords.forEach((pos, i) => {
                         let res = { filled: false, ink: 0 };
                         if (originalImg) {
@@ -1157,61 +1168,59 @@
                             res = analyze(px * canvas.width, py * canvas.height);
                         }
 
-                        // --- FIXED: SPLIT BY PIPE FOR EACH BUBBLE ---
                         let label = "";
-                        if (rule.includes("|")) {
-                            // Split the entire rule by "|"
-                            // Example: ["LetterCustom", "V", "J", "M", "S", "A"]
+                        if (rule.includes("|") && !useFallback) {
                             const parts = rule.split('|');
-
-                            // The custom labels start from index 1, 2, 3...
-                            // So for bubble i, we look at parts[i + 1]
                             if (parts[i + 1] !== undefined && parts[i + 1] !== "") {
                                 label = parts[i + 1];
                             } else {
-                                // Fallback to standard alphabet if the pipe list runs out
                                 label = String.fromCharCode(65 + i);
                             }
                         } else {
-                            // Standard Rules (No pipe symbol)
+                            // Standard Rules (No pipe symbol or fallback triggered to default 0,1,2...)
                             label = rule === "Letter" ? String.fromCharCode(65 + i) :
                                 (rule === "Number_Non_0" ? i + 1 :
                                     (rule === "Number_Start_Non_0" ? (i === 9 ? 0 : i + 1) : i));
                         }
-                        // --------------------------------------------
-
 
                         const labelStr = label.toString().toUpperCase();
                         if (res.filled) detected.push(labelStr);
                         rowBubbles.push({ label: labelStr, res });
                     });
 
+                    const isExcluded = (mcCounter >= answerKey.length || answerKey[mcCounter] === "/");
+
                     if (isMC) {
-                        if (mcCounter < answerKey.length) {
+                        if (!isExcluded) {
                             mcStats.total++;
+                            const validAnswers = answerKey[mcCounter].split(',').map(s => s.trim());
                             if (!detected.length) mcStats.blank++;
                             else if (detected.length > 1) mcStats.multiple++;
-                            else (detected[0] === answerKey[mcCounter]) ? mcStats.correct++ : mcStats.wrong++;
+                            else (validAnswers.includes(detected[0])) ? mcStats.correct++ : mcStats.wrong++;
                         } else mcStats.excluded++;
                     }
 
                     const qRow = document.createElement('div');
                     qRow.className = 'q-row';
 
-                    // 1. Build Bubble HTML and detect if modified
                     let rowBubblesHtml = "";
+                    let validAnswers = [];
+                    if (isMC && !isExcluded) {
+                        validAnswers = answerKey[mcCounter].split(',').map(s => s.trim());
+                    }
+
                     rowBubbles.forEach(item => {
                         let cls = "bubble-item";
 
-                        // Add border if it matches the answer key
-                        if (isMC && mcCounter < answerKey.length && item.label === answerKey[mcCounter]) {
+                        // Draw outline borders for every acceptable choice option
+                        if (isMC && !isExcluded && validAnswers.includes(item.label)) {
                             cls += " is-answer-key";
                         }
 
-                        if (isMC && mcCounter < answerKey.length) {
+                        if (isMC && !isExcluded) {
                             if (detected.length > 1 && item.res.filled) cls += " is-multiple";
                             else if (detected.length === 1 && item.res.filled) {
-                                cls += (item.label === answerKey[mcCounter]) ? " is-correct" : " is-wrong";
+                                cls += (validAnswers.includes(item.label)) ? " is-correct" : " is-wrong";
                             }
                         } else if (item.res.filled) {
                             cls += " is-other-filled";
@@ -1225,47 +1234,45 @@
             <span style="font-size:8px; opacity:0.8;">${Math.round(item.res.ink * 100)}%</span>
         </div>`;
                     });
-                    // Determine if this question scanned with absolutely no answers filled
+
                     const isOriginallyBlank = (detected.length === 0);
 
-                    // 2. Logic for the Reset Button Appearance
                     let rowHtml = `
-        <div class="q-left-content">
-            <div class="q-name" style="min-width: ${isMC ? '35px' : '75px'}">${qKey}</div>
-            <div class="bubble-set">${rowBubblesHtml}</div>
-        </div>
-        <button class="btn-reset" 
-            style="${isOriginallyBlank ? 'background-color: #9c9c9c; color: white; border-color: #7a7a7a;' : ''}"
-            onclick="
-            const row = this.closest('.q-row');
-            const bubbles = row.querySelectorAll('.bubble-item');
-            
-            bubbles.forEach(b => { b.className = b.getAttribute('data-original-class'); });
+    <div class="q-left-content">
+        <div class="q-name" style="min-width: ${isMC ? '35px' : '75px'}">${qKey}</div>
+        <div class="bubble-set">${rowBubblesHtml}</div>
+    </div>
+    <button class="btn-reset" 
+        style="${isOriginallyBlank ? 'background-color: #9c9c9c; color: white; border-color: #7a7a7a;' : ''}"
+        onclick="
+        const row = this.closest('.q-row');
+        const bubbles = row.querySelectorAll('.bubble-item');
+        
+        bubbles.forEach(b => { b.className = b.getAttribute('data-original-class'); });
 
-            // Revert back to the new gray if it was originally a blank row
-            if (${isOriginallyBlank}) {
-                this.style.backgroundColor = '#9c9c9c';
-                this.style.color = 'white';
-                this.style.borderColor = '#7a7a7a';
-            } else {
-                this.style.backgroundColor = '';
-                this.style.color = '';
-                this.style.borderColor = '';
-            }
-            this.innerText = 'Reset';
+        if (${isOriginallyBlank}) {
+            this.style.backgroundColor = '#9c9c9c';
+            this.style.color = 'white';
+            this.style.borderColor = '#7a7a7a';
+        } else {
+            this.style.backgroundColor = '';
+            this.style.color = '';
+            this.style.borderColor = '';
+        }
+        this.innerText = 'Reset';
 
-            const sourceSection = Array.from(resultsTable.querySelectorAll('.log-section'))
-                .find(s => s.querySelector('.log-header').innerText.trim() === '${sectionName}');
-            if (sourceSection) {
-                const sourceRow = Array.from(sourceSection.querySelectorAll('.q-row'))
-                    .find(r => r.querySelector('.q-name').innerText === '${qKey}');
-                if (sourceRow) {
-                    const sourceBubbles = sourceRow.querySelectorAll('.bubble-item');
-                    bubbles.forEach((mb, idx) => { sourceBubbles[idx].className = mb.className; });
-                }
+        const sourceSection = Array.from(resultsTable.querySelectorAll('.log-section'))
+            .find(s => s.querySelector('.log-header').innerText.trim() === '${sectionName}');
+        if (sourceSection) {
+            const sourceRow = Array.from(sourceSection.querySelectorAll('.q-row'))
+                .find(r => r.querySelector('.q-name').innerText === '${qKey}');
+            if (sourceRow) {
+                const sourceBubbles = sourceRow.querySelectorAll('.bubble-item');
+                bubbles.forEach((mb, idx) => { sourceBubbles[idx].className = mb.className; });
             }
-            recalculateMCStats();
-        ">Reset</button>`;
+        }
+        recalculateMCStats();
+    ">Reset</button>`;
 
                     qRow.innerHTML = rowHtml;
                     target.appendChild(qRow);
@@ -1368,7 +1375,7 @@
                 const allRows = Array.from(section.querySelectorAll('.q-row'));
                 const currentRow = element.closest('.q-row');
                 const rowIndex = allRows.indexOf(currentRow);
-                if (rowIndex >= answerKey.length) isExcluded = true;
+                if (rowIndex >= answerKey.length || answerKey[rowIndex] === "/") isExcluded = true;
             }
 
             // 1. Toggle the bubble state visually (Temporary status change)
@@ -1385,11 +1392,10 @@
                 }
             }
 
-            // 2. Run stats recalculation immediately so the row's classes 
-            // are fully cleaned up and normalized according to real grading logic
+            // 2. Run stats recalculation immediately so rows normalize cleanly
             recalculateMCStats();
 
-            // 3. Sync the newly normalized classes from the modal row to the background 'resultsTable'
+            // 3. Sync classes from modal row to background resultsTable
             const row = element.closest('.q-row');
             const bubbles = row.querySelectorAll('.bubble-item');
             const resetBtn = row.querySelector('.btn-reset');
@@ -1409,17 +1415,18 @@
                 }
             }
 
-            // 4. Check if the row is modified by comparing functional "filled" states 
-            // instead of fragile class text strings
+            // 4. Check if the row is modified by comparing functional "filled" states
             let isModified = false;
+            let hasAnyAnswerFilled = false;
+
             bubbles.forEach(b => {
-                // Check if currently active/filled
                 const isCurrentlyFilled = b.classList.contains('is-correct') ||
                     b.classList.contains('is-wrong') ||
                     b.classList.contains('is-multiple') ||
                     b.classList.contains('is-other-filled');
 
-                // Check if it was filled during the original image scan
+                if (isCurrentlyFilled) hasAnyAnswerFilled = true;
+
                 const origClass = b.getAttribute('data-original-class') || "";
                 const isOriginallyFilled = origClass.includes('is-correct') ||
                     origClass.includes('is-wrong') ||
@@ -1431,13 +1438,17 @@
                 }
             });
 
-            // 5. Safely apply or strip the Red Reset UI state
+            // 5. Apply Reset UI button states dynamically
             if (isModified) {
-                resetBtn.style.backgroundColor = "#f56565";
+                resetBtn.style.backgroundColor = "#f56565"; // Red
                 resetBtn.style.color = "white";
                 resetBtn.style.borderColor = "#c53030";
+            } else if (!hasAnyAnswerFilled) {
+                resetBtn.style.backgroundColor = "#9c9c9c"; // Dark Gray (Blank State)
+                resetBtn.style.color = "white";
+                resetBtn.style.borderColor = "#7a7a7a";
             } else {
-                resetBtn.style.backgroundColor = "";
+                resetBtn.style.backgroundColor = "";        // Light Gray (Default Filled State)
                 resetBtn.style.color = "";
                 resetBtn.style.borderColor = "";
             }
@@ -1445,7 +1456,6 @@
         function recalculateMCStats() {
             mcStats = { correct: 0, wrong: 0, multiple: 0, blank: 0, total: 0, excluded: 0 };
 
-            // Check if we are calculating from the Modal or the hidden background table
             const target = (modalOverlay.style.display === 'flex') ? modalBody : resultsTable;
             const sections = target.querySelectorAll('.log-section');
             let mcSection = null;
@@ -1458,14 +1468,19 @@
 
             const rows = mcSection.querySelectorAll('.q-row');
             rows.forEach((row, index) => {
-                // If there's no answer key provided for this question number, exclude it
-                if (index >= answerKey.length) {
+                // Exclude questions if out of range or explicitly set to "/"
+                if (index >= answerKey.length || answerKey[index] === "/") {
                     mcStats.excluded++;
+
+                    // Clean logic grading classes off excluded item tracks
+                    const allBubbles = row.querySelectorAll('.bubble-item');
+                    allBubbles.forEach(b => {
+                        b.classList.remove('is-correct', 'is-wrong', 'is-multiple', 'is-answer-key');
+                    });
                     return;
                 }
                 mcStats.total++;
 
-                // Find bubbles currently marked as 'filled' (regardless of their current color)
                 const allBubbles = row.querySelectorAll('.bubble-item');
                 let detectedLabels = [];
 
@@ -1475,24 +1490,21 @@
                     }
                 });
 
-                // Update the visual colors for this row
+                const validAnswers = answerKey[index].split(',').map(s => s.trim());
+
                 allBubbles.forEach(b => {
                     const bLabel = b.querySelector('span').innerText.toUpperCase();
-                    const correctAnswer = answerKey[index];
 
-                    // Clear existing logic colors
                     b.classList.remove('is-correct', 'is-wrong', 'is-multiple', 'is-answer-key');
 
-                    // Re-apply the green border if it is the correct answer
-                    if (bLabel === correctAnswer) {
+                    if (validAnswers.includes(bLabel)) {
                         b.classList.add('is-answer-key');
                     }
 
-                    // Re-apply fill colors based on current selection state
                     if (detectedLabels.includes(bLabel)) {
                         if (detectedLabels.length > 1) {
                             b.classList.add('is-multiple');
-                        } else if (bLabel === correctAnswer) {
+                        } else if (validAnswers.includes(bLabel)) {
                             b.classList.add('is-correct');
                         } else {
                             b.classList.add('is-wrong');
@@ -1500,14 +1512,12 @@
                     }
                 });
 
-                // Tally the statistics
                 if (detectedLabels.length === 0) mcStats.blank++;
                 else if (detectedLabels.length > 1) mcStats.multiple++;
-                else if (detectedLabels[0] === answerKey[index]) mcStats.correct++;
+                else if (validAnswers.includes(detectedLabels[0])) mcStats.correct++;
                 else mcStats.wrong++;
             });
 
-            // If the modal is open, refresh the stat text labels immediately
             if (modalOverlay.style.display === 'flex') {
                 const totalDenom = mcStats.total || 1;
                 const updates = {
@@ -1520,7 +1530,7 @@
                         mcStats.excluded,
                         (mcStats.correct / totalDenom * 100).toFixed(1) + '%',
                         ((mcStats.wrong + mcStats.multiple + mcStats.blank) / totalDenom * 100).toFixed(1) + '%',
-                        (mcStats.wrong / totalDenom * 100).toFixed(1) + '%' // <-- Add this 9th item
+                        (mcStats.wrong / totalDenom * 100).toFixed(1) + '%'
                     ]
                 };
 
