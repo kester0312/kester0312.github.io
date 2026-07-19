@@ -1,6 +1,6 @@
 { 
   "Setting": {
-    "Ink_Threshold": 55,
+    "Ink_Threshold": 60,
     "Box_Scale": 1,
     "Search_Area": 1
   },
