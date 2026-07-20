@@ -419,44 +419,60 @@
 
         .stats-container {
             display: flex;
-            align-items: stretch;
-            gap: 15px;
+            width: 100%;
+            gap: 6px;
+            /* Tight gap to fit all items perfectly */
             margin-bottom: 25px;
             background: #fff;
             padding: 5px;
-            overflow-x: auto;
-        }
-
-        .stats-group {
-            display: flex;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-
-        .stats-divider {
-            width: 2px;
-            background: #cbd5e0;
-            margin: 0 5px;
-            border-radius: 2px;
+            box-sizing: border-box;
         }
 
         .stat-card {
-            min-width: 100px;
-            padding: 12px;
+            flex: 1;
+            min-width: 0;
+            min-height: 60px;
+            padding: 8px 4px;
+            /* Reduced vertical padding */
             border-radius: 8px;
             text-align: center;
             border: 1px solid #ddd;
-            background: #fff;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            /* Changed from space-between to center */
+            align-items: center;
+            /* Centers items horizontally */
+            gap: 15px;
+            /* Exact control of the space between Label and Numbers */
+        }
+
+        /* NEW: The Double-Width Card Modifier (Adjusted to 75% of original width) */
+        .stat-card.double {
+            flex: 2;
         }
 
         .stat-val {
-            font-size: 1.4em;
+            font-size: 1.45em;
             font-weight: bold;
             display: block;
-            margin-top: 4px;
+            /* margin-top removed to let the gap control spacing */
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .split-val-container {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            width: 100%;
+            /* margin-top removed */
+        }
+
+        .split-val-container .stat-val {
+            flex: 1;
         }
 
         .stat-lbl {
@@ -464,11 +480,14 @@
             text-transform: uppercase;
             color: #666;
             font-weight: 800;
-            letter-spacing: 0.5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 2.4em;
+            line-height: 1.2;
+            text-align: center;
+            white-space: normal;
+            /* Allows text to wrap into 2 lines */
+            word-wrap: break-word;
         }
 
         /* --- 7. TOGGLE SWITCH --- */
@@ -871,7 +890,7 @@
                                     Alignment</button>
 
                                 <h3>Output Controls</h3>
-                                <button id="im_downloadBtn" class="im_btn" disabled>Download Aligned</button>
+                                <button id="im_downloadBtn" class="im_btn" disabled>Download Aligned</button><br />
                                 <button id="im_copyBtn" class="im_btn" disabled>Copy Aligned</button>
                                 <button id="im_copyDataUrlBtn" class="im_btn" disabled>Copy Data URL</button>
                                 <br /><br />
@@ -883,18 +902,12 @@
                                 <h3 style="margin-top:0;">Settings</h3>
                                 <label class="im_label">Save File:</label><input id="im_saveFile" class="im_input"
                                     type="text" value="Save"><br />
-                                <label class="im_label">Step File:</label><input id="im_stepFile" class="im_input"
-                                    type="text" value="Step"><br />
-                                <label class="im_label">PositionsTxt:</label><input id="im_positionsTxt"
-                                    class="im_input" type="text" value="Pos"><br />
                                 <label class="im_label">Save Pixels X:</label><input id="im_savePixelsX"
                                     class="im_input" type="number" value="2480"><br />
                                 <label class="im_label">Save Pixels Y:</label><input id="im_savePixelsY"
                                     class="im_input" type="number" value="3508"><br />
                                 <label class="im_label">Search Percent:</label><input id="im_searchPercentBox"
                                     class="im_input" type="number" value="1.5" min="1" max="20"><br />
-                                <label class="im_label">Step Required:</label><input id="im_stepRequired"
-                                    type="checkbox"><br /><br />
 
                                 <label class="im_label">Settings JSON:</label><input id="im_settingsInput"
                                     class="im_input" type="file" accept=".json">
@@ -1130,44 +1143,68 @@
                 const corrPct = (mcStats.correct / totalDenom * 100).toFixed(1);
                 const wrongPct = ((mcStats.wrong + mcStats.multiple + mcStats.blank) / totalDenom * 100).toFixed(1);
                 const wrongExPct = (mcStats.wrong / totalDenom * 100).toFixed(1);
+                const multBg = mcStats.multiple !== 0 ? '#ffcdd2' : '#ffffff';
+                const blankBg = mcStats.blank !== 0 ? '#ffcdd2' : '#ffffff';
 
                 modalBody.innerHTML = `
             <div class="stats-container" style="font-family: Arial, sans-serif !important; text-transform: none !important;">
-                <div class="stats-group" style="background: #fff9c4; padding: 10px; border-radius: 12px; border: 2px solid #fbc02d; margin-right: 5px;">
-                    <div class="stat-card" style="border-bottom: 4px solid #48bb78"><span class="stat-lbl" style="text-transform: none !important;">Correct Ans</span><span class="stat-val">${mcStats.correct}</span></div>
-                    <div class="stat-card" style="border-bottom: 4px solid #f56565"><span class="stat-lbl" style="text-transform: none !important;">Wrong Ans</span><span class="stat-val">${mcStats.wrong}</span></div>
+                
+                <!-- 1. Correct Answer -->
+                <div class="stat-card double" style="border-bottom: 4px solid #48bb78; background: #fff9c4;">
+                    <span class="stat-lbl">Correct Answer</span>
+                    <div class="split-val-container">
+                        <span class="stat-val"><span style="color:#2f855a">${mcStats.correct}</span><span style="color:#2c3e50"> / ${totalDenom}</span></span>
+                        <span style="color:#ccc; font-size:0.9em; padding: 0 4px;">|</span>
+                        <span class="stat-val" style="color:#2f855a">${corrPct}%</span>
+                    </div>
+                </div>
+
+                <!-- 2. Wrong Answer -->
+                <div class="stat-card double" style="border-bottom: 4px solid #f56565; background: #fff9c4;">
+                    <span class="stat-lbl">Wrong Answer</span>
+                    <div class="split-val-container">
+                        <span class="stat-val"><span style="color:#c53030">${mcStats.wrong + mcStats.multiple + mcStats.blank}</span><span style="color:#2c3e50"> / ${totalDenom}</span></span>
+                        <span style="color:#ccc; font-size:0.9em; padding: 0 4px;">|</span>
+                        <span class="stat-val" style="color:#c53030">${wrongPct}%</span>
+                    </div>
                 </div>
                 
-                <div class="stats-group" style="background: #ffffff; padding: 10px 0px; border-radius: 12px; border: 2px solid #ffffff;">
-                    <div class="stat-card" style="border-bottom: 4px solid #4299e1"><span class="stat-lbl" style="text-transform: none !important;">Multiple Ans</span><span class="stat-val">${mcStats.multiple}</span></div>
-                    <div class="stat-card" style="border-bottom: 4px solid #95a5a6"><span class="stat-lbl" style="text-transform: none !important;">Blank Ans</span><span class="stat-val">${mcStats.blank}</span></div>
+                <!-- Standard Single Width Cards (With Dynamic Backgrounds) -->
+                <div id="card-multiple" class="stat-card" style="border-bottom: 4px solid #4299e1; background: ${multBg};">
+                    <span class="stat-lbl">Multiple Ans</span>
+                    <span class="stat-val">${mcStats.multiple}</span>
                 </div>
                 
-                <div class="stats-divider"></div>
-                
-                <div class="stats-group" style="background: #ffffff; padding: 10px 0px; border-radius: 12px; border: 2px solid #ffffff;">
-                    <div class="stat-card" style="border-bottom: 4px solid #2c3e50"><span class="stat-lbl" style="text-transform: none !important;">Total Q No.</span><span class="stat-val">${mcStats.total}</span></div>
-                    <div class="stat-card" style="border-bottom: 4px solid #f1c40f"><span class="stat-lbl" style="text-transform: none !important;">Excl. Ans</span><span class="stat-val">${mcStats.excluded}</span></div>
+                <div id="card-blank" class="stat-card" style="border-bottom: 4px solid #95a5a6; background: ${blankBg};">
+                    <span class="stat-lbl">Blank Ans</span>
+                    <span class="stat-val">${mcStats.blank}</span>
                 </div>
                 
-                <div class="stats-divider"></div>
-                
-                <div class="stats-group" style="background: #fff9c4; padding: 10px; border-radius: 12px; border: 2px solid #fbc02d;">
-                    <div class="stat-card" style="border-bottom: 4px solid #48bb78"><span class="stat-lbl">Correct %</span><span class="stat-val" style="color:#2f855a">${corrPct}%</span></div>
-                    <div class="stat-card" style="border-bottom: 4px solid #f56565"><span class="stat-lbl">Wrong %</span><span class="stat-val" style="color:#c53030">${wrongPct}%</span></div>
+                <div class="stat-card" style="border-bottom: 4px solid #2c3e50; background: #ffffff;">
+                    <span class="stat-lbl">Total Q No.</span>
+                    <span class="stat-val">${mcStats.total}</span>
                 </div>
                 
-                <div class="stats-divider"></div>
-                
-                <div class="stats-group" style="background: #ffffff; padding: 10px 0px; border-radius: 12px; border: 2px solid #ffffff;">
-                    <div class="stat-card" style="border-bottom: 4px solid #4299e1"><span class="stat-lbl" style="text-transform: none !important;">Wrong % Excl. Errors</span><span class="stat-val" style="color:#2b6cb0">${wrongExPct}%</span></div>
+                <div class="stat-card" style="border-bottom: 4px solid #f1c40f; background: #ffffff;">
+                    <span class="stat-lbl">Excl. Ans</span>
+                    <span class="stat-val">${mcStats.excluded}</span>
                 </div>
+                
+                <!-- 3. Wrong Ans (Excl. Error) formatted like the main cards -->
+                <div class="stat-card double" style="border-bottom: 4px solid #4299e1; background: #ffffff;">
+                    <span class="stat-lbl">Wrong Ans (Excl. Error)</span>
+                    <div class="split-val-container">
+                        <span class="stat-val"><span style="color:#2b6cb0">${mcStats.wrong}</span><span style="color:#2c3e50"> / ${totalDenom}</span></span>
+                        <span style="color:#ccc; font-size:0.9em; padding: 0 4px;">|</span>
+                        <span class="stat-val" style="color:#2b6cb0">${wrongExPct}%</span>
+                    </div>
+                </div>
+                
             </div>
             <div id="table-wrapper" style="margin-top:20px; position: relative;">
                 ${resultsTable.innerHTML}
             </div>
         `;
-
 
                 // Check for modified rows and blank rows for the Reset Button UI
                 modalBody.querySelectorAll('.q-row').forEach(row => {
@@ -1764,26 +1801,38 @@
 
             if (modalOverlay.style.display === 'flex') {
                 const totalDenom = mcStats.total || 1;
+                const corrPct = (mcStats.correct / totalDenom * 100).toFixed(1);
+                const wrongPct = ((mcStats.wrong + mcStats.multiple + mcStats.blank) / totalDenom * 100).toFixed(1);
+                const wrongExPct = (mcStats.wrong / totalDenom * 100).toFixed(1);
+
                 const updates = {
                     '.stat-val': [
-                        mcStats.correct,
-                        mcStats.wrong,
+                        `<span style="color:#2f855a">${mcStats.correct}</span><span style="color:#2c3e50"> / ${totalDenom}</span>`,
+                        `${corrPct}%`,
+                        `<span style="color:#c53030">${mcStats.wrong + mcStats.multiple + mcStats.blank}</span><span style="color:#2c3e50"> / ${totalDenom}</span>`,
+                        `${wrongPct}%`,
                         mcStats.multiple,
                         mcStats.blank,
                         mcStats.total,
                         mcStats.excluded,
-                        (mcStats.correct / totalDenom * 100).toFixed(1) + '%',
-                        ((mcStats.wrong + mcStats.multiple + mcStats.blank) / totalDenom * 100).toFixed(1) + '%',
-                        (mcStats.wrong / totalDenom * 100).toFixed(1) + '%'
+                        `<span style="color:#2b6cb0">${mcStats.wrong}</span><span style="color:#2c3e50"> / ${totalDenom}</span>`,
+                        `${wrongExPct}%`
                     ]
                 };
 
                 const cards = modalBody.querySelectorAll('.stat-val');
                 cards.forEach((card, i) => {
                     if (updates['.stat-val'][i] !== undefined) {
-                        card.innerText = updates['.stat-val'][i];
+                        // CRITICAL: Swapped from .innerText to .innerHTML to support inline span colors
+                        card.innerHTML = updates['.stat-val'][i];
                     }
                 });
+
+                // Live-update the red warning backgrounds if users manually click bubbles!
+                const cardMult = modalBody.querySelector('#card-multiple');
+                const cardBlank = modalBody.querySelector('#card-blank');
+                if (cardMult) cardMult.style.background = mcStats.multiple !== 0 ? '#ffcdd2' : '#ffffff';
+                if (cardBlank) cardBlank.style.background = mcStats.blank !== 0 ? '#ffcdd2' : '#ffffff';
             }
         }
         // 1. Get the elements
@@ -1987,7 +2036,42 @@
         let im_scale = 1, im_offsetX = 0, im_offsetY = 0;
         let im_clicks = [], im_refinedPoints = [], im_selectedPointIndex = -1;
 
-        let im_settings = { save_file: "Save", step_file: "Step", PositionsTxt: "Pos", save_pixels_x: 2480, save_pixels_y: 3508, search_percent: 1.5, StepRequired: false };
+        let im_settings = { save_file: "Save", save_pixels_x: 2480, save_pixels_y: 3508, search_percent: 1.5 };
+        let im_originalFileName = "Scanned_Image"; // Default fallback
+
+        function im_formatFileName(template, origName) {
+            if (!origName) origName = "image";
+            // Regex matches {original_name}, {original_name,X}, or {original_name,X,Y} (allows spaces)
+            return template.replace(/\{original_name(?:,\s*(-?\d+))?(?:,\s*(-?\d+))?\}/g, (match, p1, p2) => {
+                if (p1 === undefined && p2 === undefined) return origName; // {original_name}
+
+                let len = origName.length;
+                let getIndex = (val) => {
+                    let i = parseInt(val, 10);
+                    if (i > 0) return i - 1;       // 1-based positive index
+                    if (i < 0) return len + i;     // 1-based negative index from the end
+                    return 0;
+                };
+
+                if (p2 === undefined) {
+                    // Single character extraction
+                    let idx = getIndex(p1);
+                    if (idx >= 0 && idx < len) return origName[idx];
+                    return "";
+                } else {
+                    // Range character extraction
+                    let idx1 = getIndex(p1);
+                    let idx2 = getIndex(p2);
+                    let start = Math.min(idx1, idx2);
+                    let end = Math.max(idx1, idx2);
+
+                    // Constrain to string bounds safely
+                    start = Math.max(0, start);
+                    end = Math.min(len - 1, end);
+                    return origName.substring(start, end + 1);
+                }
+            });
+        }
 
         function im_logMsg(msg) {
             const logDiv = document.getElementById('im_log');
@@ -1997,25 +2081,19 @@
 
         function im_updateSettingsFromUI() {
             im_settings.save_file = document.getElementById('im_saveFile').value;
-            im_settings.step_file = document.getElementById('im_stepFile').value;
-            im_settings.PositionsTxt = document.getElementById('im_positionsTxt').value;
             im_settings.save_pixels_x = parseInt(document.getElementById('im_savePixelsX').value);
             im_settings.save_pixels_y = parseInt(document.getElementById('im_savePixelsY').value);
             im_settings.search_percent = parseFloat(document.getElementById('im_searchPercentBox').value);
-            im_settings.StepRequired = document.getElementById('im_stepRequired').checked;
         }
 
         function im_updateUIFromSettings() {
             document.getElementById('im_saveFile').value = im_settings.save_file;
-            document.getElementById('im_stepFile').value = im_settings.step_file;
-            document.getElementById('im_positionsTxt').value = im_settings.PositionsTxt;
             document.getElementById('im_savePixelsX').value = im_settings.save_pixels_x;
             document.getElementById('im_savePixelsY').value = im_settings.save_pixels_y;
             document.getElementById('im_searchPercentBox').value = im_settings.search_percent;
-            document.getElementById('im_stepRequired').checked = im_settings.StepRequired;
         }
 
-        document.querySelectorAll('#im_saveFile,#im_stepFile,#im_positionsTxt,#im_savePixelsX,#im_savePixelsY,#im_searchPercentBox,#im_stepRequired')
+        document.querySelectorAll('#im_saveFile,#im_savePixelsX,#im_savePixelsY,#im_searchPercentBox')
             .forEach(el => el.addEventListener('input', im_updateSettingsFromUI));
 
         document.getElementById('im_settingsInput').addEventListener('change', async e => {
@@ -2065,6 +2143,10 @@
             if (!im_cvReady) { im_logMsg("[ERROR] OpenCV not ready."); return; }
             const file = document.getElementById('im_fileInput').files[0];
             if (!file) { im_logMsg("[ERROR] No file selected."); return; }
+
+            // --- NEW: Capture original filename without the extension ---
+            im_originalFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+
             im_imgMat = await im_loadCvMatFromFile(file);
             im_clicks = im_autoDetectBlackCorners(im_imgMat);
             im_selectedPointIndex = -1;
@@ -2103,8 +2185,16 @@
         document.getElementById('im_downloadBtn').addEventListener('click', () => {
             if (!im_alignedMat) return;
             im_matToBlob(im_alignedMat).then(blob => {
-                const url = URL.createObjectURL(blob), a = document.createElement('a');
-                a.href = url; a.download = im_settings.save_file + ".png"; a.click(); URL.revokeObjectURL(url);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                // --- NEW: Parse the dynamic {} format for the file name ---
+                const finalName = im_formatFileName(im_settings.save_file, im_originalFileName);
+
+                a.download = finalName + ".png";
+                a.click();
+                URL.revokeObjectURL(url);
             });
         });
 
