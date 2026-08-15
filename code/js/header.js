@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
         </a>
       </div>
     </header>
+    <div style="padding-bottom: 40px;"></div>
   `;
   document.body.insertAdjacentHTML("afterbegin", headerHTML);
 });

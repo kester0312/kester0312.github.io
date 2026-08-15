@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Generator</title>
+    <!-- Local script reference: No external server calls -->
+    <script src="html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --border: #e5e7eb;
+            /* Updated border color */
+            --bg-color: #f3f4f6;
+        }
+
+        /* --- SCREEN STYLES --- */
+        @media screen {
+            body {
+                font-family: system-ui, -apple-system, sans-serif;
+                background-color: var(--bg-color);
+                margin: 0;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                color: #1f2937;
+            }
+
+            .print-only {
+                display: none !important;
+            }
+
+            .controls {
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+                display: flex;
+                gap: 20px;
+                align-items: center;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .input-group {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .input-group label {
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                cursor: pointer;
+            }
+
+            /* Added input[type="number"] for the new year text boxes */
+            select,
+            input[type="number"],
+            button {
+                padding: 10px 16px;
+                font-size: 16px;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                outline: none;
+            }
+
+            input[type="number"] {
+                width: 80px;
+                font-family: inherit;
+            }
+
+            button {
+                background-color: var(--primary);
+                color: white;
+                border: none;
+                cursor: pointer;
+                font-weight: 600;
+                transition: background 0.2s;
+            }
+
+            button:hover {
+                background-color: var(--primary-hover);
+            }
+
+            button:disabled {
+                background-color: #9ca3af;
+                cursor: not-allowed;
+            }
+
+            select:disabled,
+            input:disabled {
+                background-color: #f3f4f6;
+                color: #9ca3af;
+                cursor: not-allowed;
+            }
+
+            .preview-nav {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                margin-bottom: 20px;
+                background: white;
+                padding: 10px 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+
+            #preview-status {
+                font-weight: 600;
+                min-width: 180px;
+                text-align: center;
+            }
+
+            .preview-wrapper {
+                width: 100%;
+                max-width: 1122px;
+                /* A4 Landscape width */
+                overflow-x: auto;
+                display: flex;
+                justify-content: center;
+            }
+
+            /* --- SHARED CALENDAR LAYOUT --- */
+            .calendar-page {
+                width: 297mm;
+                height: 100%;
+                /* Ensures it fits within the page */
+                max-height: 200mm;
+                /* Prevents spilling over A4 landscape height (210mm) */
+                overflow: hidden;
+                /* Hides any extra pixels that cause blank pages */
+                background: white;
+                padding: 15mm;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+            }
+        }
+
+        /* --- PRINT STYLES --- */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .screen-only {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .calendar-page {
+                page-break-after: always;
+                break-after: page;
+                box-shadow: none;
+            }
+        }
+
+        /* --- SHARED CALENDAR LAYOUT --- */
+        .calendar-page {
+            width: 297mm;
+            height: 210mm;
+            background: white;
+            padding: 15mm;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-header {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            flex-grow: 1;
+            border-top: 2px solid var(--border);
+            border-left: 2px solid var(--border);
+        }
+
+        .day-name {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            background-color: #f9fafb;
+            border-right: 2px solid var(--border);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .day-cell {
+            border-right: 2px solid var(--border);
+            border-bottom: 2px solid var(--border);
+            padding: 8px;
+            font-size: 18px;
+            font-weight: 500;
+            color: #374151;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-cell.empty {
+            background-color: #f9fafb;
+        }
+
+        /* Add this to your main month container class */
+        .your-month-container-class {
+            height: 100%;
+            /* Or a specific pixel height that fits A4 landscape */
+            max-height: 200mm;
+            /* A4 landscape height is 210mm, leaving a safe margin */
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* The class we added in the JS above */
+        .pdf-page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="screen-only">
+        <link rel="stylesheet" href="\code/css/header.css">
+        <header class="site-header"
+            style="padding-top: 8px; padding-bottom: 40px; padding-left: 10px; height: 70px; box-sizing: border-box; display: block; width: 100%;">
+            <div class="header-container">
+                <a href="\index.html" class="logo" title="麥塊藍月光">
+                    <img src="\icon.png" alt="Logo" style="width: auto; height: 55px; display: block;">
+                </a>
+            </div>
+        </header>
+        <div style="padding-top: 60px;"></div>
+    </div>
+
+    <!-- UI Controls -->
+    <div class="controls screen-only">
+        <div class="input-group">
+            <label>Start Period:</label>
+            <select id="start-month"></select>
+            <!-- Changed to input number for text entry without strict limits -->
+            <input type="number" id="start-year" value="">
+        </div>
+
+        <div class="input-group">
+            <label>
+                <input type="checkbox" id="enable-end" onchange="toggleEndPeriod()">
+                End Period:
+            </label>
+            <select id="end-month" disabled></select>
+            <input type="number" id="end-year" value="" disabled>
+        </div>
+
+        <button onclick="generatePeriod()">Preview Calendar</button>
+        <!-- Print Button (Original Function) -->
+        <button onclick="window.print()" style="background-color: #4b5563; padding: 10px 30px;">Print</button>
+    </div>
+
+    <!-- Preview Navigation -->
+    <div class="preview-nav screen-only" id="nav-container" style="display: none;">
+        <button id="btn-prev" onclick="changePreview(-1)">&#10094; Prev</button>
+        <div id="preview-status">Month Year</div>
+        <button id="btn-next" onclick="changePreview(1)">Next &#10095;</button>
+    </div>
+
+    <!-- Live Preview Area -->
+    <div class="preview-wrapper screen-only" id="preview-container">
+        <!-- JS injects single month preview here -->
+    </div>
+
+    <!-- Hidden Print Stack -->
+    <div class="print-only" id="print-container">
+        <!-- JS injects all months here for printing -->
+    </div>
+
+
+    <div class="screen-only">
+        <footer style="text-align: center; margin-top: 80px; padding-bottom: 40px; color: #BBB; font-size: 0.9rem;">
+            &copy; 2026 麥塊藍月光 &bull; kester0312.github.io
+        </footer>
+    </div>
+    <script>
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+        let generatedMonths = [];
+        let currentPreviewIndex = 0;
+
+        function initControls() {
+            const sm = document.getElementById('start-month');
+            const em = document.getElementById('end-month');
+            const sy = document.getElementById('start-year');
+            const ey = document.getElementById('end-year');
+
+            months.forEach((month, index) => {
+                sm.add(new Option(month, index));
+                em.add(new Option(month, index));
+            });
+
+            // Set default dates
+            const d = new Date();
+            sm.value = d.getMonth();
+            sy.value = d.getFullYear();
+
+            d.setMonth(d.getMonth() + 2);
+            em.value = d.getMonth();
+            ey.value = d.getFullYear();
+        }
+
+        function toggleEndPeriod() {
+            const isEnabled = document.getElementById('enable-end').checked;
+            document.getElementById('end-month').disabled = !isEnabled;
+            document.getElementById('end-year').disabled = !isEnabled;
+        }
+
+        function buildCalendarElement(monthIndex, year) {
+            const page = document.createElement('div');
+            page.className = 'calendar-page';
+
+            const header = document.createElement('div');
+            header.className = 'calendar-header';
+            header.innerText = `${months[monthIndex]} ${year}`;
+            page.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'calendar-grid';
+
+            days.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'day-name';
+                dayHeader.innerText = day;
+                grid.appendChild(dayHeader);
+            });
+
+            const firstDay = new Date(year, monthIndex, 1).getDay();
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+            const totalCells = firstDay + daysInMonth;
+            const rowsNeeded = Math.ceil(totalCells / 7);
+
+            grid.style.gridTemplateRows = `40px repeat(${rowsNeeded}, 1fr)`;
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'day-cell empty';
+                grid.appendChild(emptyCell);
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day-cell';
+                dayCell.innerText = i;
+                grid.appendChild(dayCell);
+            }
+
+            const remainingCells = (rowsNeeded * 7) - totalCells;
+            for (let i = 0; i < remainingCells; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'day-cell empty';
+                grid.appendChild(emptyCell);
+            }
+
+            page.appendChild(grid);
+            return page;
+        }
+
+        function generatePeriod() {
+            const sm = parseInt(document.getElementById('start-month').value);
+            const sy = parseInt(document.getElementById('start-year').value);
+
+            const isEndEnabled = document.getElementById('enable-end').checked;
+            const em = isEndEnabled ? parseInt(document.getElementById('end-month').value) : sm;
+            const ey = isEndEnabled ? parseInt(document.getElementById('end-year').value) : sy;
+
+            const startDate = new Date(sy, sm, 1);
+            const endDate = new Date(ey, em, 1);
+
+            if (startDate > endDate) {
+                alert("Error: The End Period must be after or equal to the Start Period.");
+                return;
+            }
+
+            generatedMonths = [];
+            let current = new Date(startDate);
+
+            while (current <= endDate) {
+                generatedMonths.push(buildCalendarElement(current.getMonth(), current.getFullYear()));
+                current.setMonth(current.getMonth() + 1);
+            }
+
+            const printContainer = document.getElementById('print-container');
+            printContainer.innerHTML = '';
+            generatedMonths.forEach(el => {
+                printContainer.appendChild(el.cloneNode(true));
+            });
+
+            document.getElementById('nav-container').style.display = generatedMonths.length > 1 ? 'flex' : 'none';
+            currentPreviewIndex = 0;
+            updatePreviewUI();
+        }
+
+        function changePreview(direction) {
+            currentPreviewIndex += direction;
+            updatePreviewUI();
+        }
+
+        function updatePreviewUI() {
+            const previewContainer = document.getElementById('preview-container');
+            previewContainer.innerHTML = '';
+            previewContainer.appendChild(generatedMonths[currentPreviewIndex].cloneNode(true));
+
+            const currentTitle = generatedMonths[currentPreviewIndex].querySelector('.calendar-header').innerText;
+            document.getElementById('preview-status').innerText = `${currentTitle} (${currentPreviewIndex + 1} of ${generatedMonths.length})`;
+
+            document.getElementById('btn-prev').disabled = currentPreviewIndex === 0;
+            document.getElementById('btn-next').disabled = currentPreviewIndex === generatedMonths.length - 1;
+        }
+
+
+        window.onload = () => {
+            initControls();
+            generatePeriod();
+        };
+    </script>
+</body>
+
+</html>

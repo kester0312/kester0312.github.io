@@ -1,50 +1,250 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MC Super Typer</title>
     <style>
-        :root { --primary: #ffd700; --primary-dark: #b8860b; --bg: #fffdf0; --danger: #d93025; --success: #4CAF50; --info: #2196F3; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 15px; margin: 0; }
-        
-        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; }
-        #settings-modal { background: white; padding: 20px; border-radius: 12px; width: 95%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        
-        .tables-wrapper { display: flex; flex-direction: row; gap: 20px; overflow-y: auto; margin-bottom: 15px; }
-        .table-section { flex: 1; min-width: 280px; position: relative; }
-        
-        .table-container { border: 1px solid #eee; border-radius: 6px; max-height: 300px; overflow-y: auto; background: #fff; position: relative; }
-        .table-container::-webkit-scrollbar { width: 8px; }
-        .table-container::-webkit-scrollbar-track { background: #f1f1f1; }
-        .table-container::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+        :root {
+            --primary: #00ddff;
+            --primary-dark: #007486;
+            --bg: #F0F9FF;
+            --danger: #d93025;
+            --success: #4CAF50;
+            --info: #2196F3;
+        }
 
-        .scroll-hint { text-align: center; font-size: 0.75rem; color: #888; padding: 4px; background: #fafafa; border-top: 1px solid #eee; border-radius: 0 0 6px 6px; font-style: italic; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            margin: 0;
+        }
 
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; font-size: 0.9rem; }
-        
-        .edit-input { width: 80%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
-        .key-input-listen { background-color: #f0f7ff; cursor: pointer; font-weight: bold; color: #007bff; border: 1px solid #007bff; }
-        
-        #button-container { display: flex; flex-wrap: nowrap; gap: 8px; width: 98%; max-width: 1100px; margin-bottom: 15px; justify-content: center; container-type: inline-size; }
-        .btn-big { flex: 1; min-width: 40px; max-width: 150px; aspect-ratio: 1 / 1; font-size: clamp(14px, 40cqw, 48px); font-weight: 900; cursor: pointer; border: none; border-radius: 12px; background-color: var(--primary); box-shadow: 0 5px var(--primary-dark); transition: all 0.05s; touch-action: manipulation; display: flex; align-items: center; justify-content: center; }
-        .btn-big:active, .btn-active { box-shadow: 0 0 var(--primary-dark); transform: translateY(5px); }
-        
-        #display { width: 95%; max-width: 850px; min-height: 60px; background: white; border: 3px solid #e6b800; border-radius: 10px; padding: 12px; margin-bottom: 20px; font-size: 1.2rem; word-wrap: break-word; }
-        #mc-counter { width: 95%; max-width: 850px; text-align: center; font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; color: #444; background: #fff9c4; padding: 12px; border-radius: 8px; line-height: 1.5; }
-        
-        .control-panel { display: flex; flex-direction: column; gap: 8px; width: 95%; max-width: 600px; }
-        .btn-control { padding: 10px; font-size: 0.95rem; cursor: pointer; border: 1px solid #ccc; border-radius: 6px; background: white; }
-        .btn-voice-active { background-color: #e3f2fd; border-color: var(--info); color: var(--info); font-weight: bold; }
-        
-        h4 { margin: 0 0 10px 0; color: #333; border-left: 4px solid var(--primary); padding-left: 10px; }
-        .btn-modal-save { background: var(--success); color: white; border: none; padding: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; }
-        @media (max-width: 700px) { .tables-wrapper { flex-direction: column; } }
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #settings-modal {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 95%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .tables-wrapper {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .table-section {
+            flex: 1;
+            min-width: 280px;
+            position: relative;
+        }
+
+        .table-container {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #fff;
+            position: relative;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        .scroll-hint {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #888;
+            padding: 4px;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+            border-radius: 0 0 6px 6px;
+            font-style: italic;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .edit-input {
+            width: 80%;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .key-input-listen {
+            background-color: #f0f7ff;
+            cursor: pointer;
+            font-weight: bold;
+            color: #007bff;
+            border: 1px solid #007bff;
+        }
+
+        #button-container {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            width: 98%;
+            max-width: 1100px;
+            margin-bottom: 15px;
+            justify-content: center;
+            container-type: inline-size;
+        }
+
+        .btn-big {
+            flex: 1;
+            min-width: 40px;
+            max-width: 150px;
+            aspect-ratio: 1 / 1;
+            font-size: clamp(14px, 40cqw, 48px);
+            font-weight: 900;
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--primary);
+            box-shadow: 0 5px var(--primary-dark);
+            transition: all 0.05s;
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-big:active,
+        .btn-active {
+            box-shadow: 0 0 var(--primary-dark);
+            transform: translateY(5px);
+        }
+
+        #display {
+            width: 95%;
+            max-width: 850px;
+            min-height: 60px;
+            background: white;
+            border: 3px solid #e6b800;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            word-wrap: break-word;
+        }
+
+        #mc-counter {
+            width: 95%;
+            max-width: 850px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #444;
+            background: #fff9c4;
+            padding: 12px;
+            border-radius: 8px;
+            line-height: 1.5;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 95%;
+            max-width: 600px;
+        }
+
+        .btn-control {
+            padding: 10px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background: white;
+        }
+
+        .btn-voice-active {
+            background-color: #e3f2fd;
+            border-color: var(--info);
+            color: var(--info);
+            font-weight: bold;
+        }
+
+        h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            border-left: 4px solid var(--primary);
+            padding-left: 10px;
+        }
+
+        .btn-modal-save {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 700px) {
+            .tables-wrapper {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
+
 <body>
-    <button class="btn-control" style="width:95%; max-width:850px; margin-bottom:15px; font-weight:bold;" onclick="openSettings()">⌨️ Keyboard Keys Setting</button>
+
+    <script src="\code/js/header.js"></script>
+    <p style="padding-top: 10px;"></p>
+
+    <button class="btn-control" style="width:95%; max-width:850px; margin-bottom:15px; font-weight:bold;"
+        onclick="openSettings()">⌨️ Keyboard Keys Setting</button>
 
     <div id="modal-overlay">
         <div id="settings-modal">
@@ -54,18 +254,30 @@
                     <h4>Answer Buttons</h4>
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Label</th><th>Key</th><th>Del</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Label</th>
+                                    <th>Key</th>
+                                    <th>Del</th>
+                                </tr>
+                            </thead>
                             <tbody id="answer-table-body"></tbody>
                         </table>
                     </div>
                     <div class="scroll-hint">↓ Scroll for more buttons ↓</div>
-                    <button class="btn-control" style="width:100%; margin-top:10px; border-style:dashed;" onclick="addNewButtonRow()">+ Add Row</button>
+                    <button class="btn-control" style="width:100%; margin-top:10px; border-style:dashed;"
+                        onclick="addNewButtonRow()">+ Add Row</button>
                 </div>
                 <div class="table-section">
                     <h4>System Functions</h4>
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Function</th><th>Key</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Function</th>
+                                    <th>Key</th>
+                                </tr>
+                            </thead>
                             <tbody id="system-table-body"></tbody>
                         </table>
                     </div>
@@ -81,14 +293,28 @@
     <div id="mc-counter">MC No. count: Loading...</div>
 
     <div class="control-panel">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;"><button class="btn-control" onclick="deleteLast()">Del Last</button><button class="btn-control" onclick="deleteSpecific()">Del Question (Ask)</button></div>
-        <button class="btn-control" style="color:var(--danger); font-weight:bold; border-color:var(--danger);" onclick="resetAnswers()">Reset All Answers</button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+            <button class="btn-control" onclick="deleteLast()">Del Last Question</button>
+            <button class="btn-control" onclick="deleteSpecific()">Del Sp. Question</button>
+            <button class="btn-control" style="color:var(--danger); font-weight:bold; border-color:var(--danger);"
+                onclick="resetAnswers()">Reset All Answers</button>
+        </div>
         <button class="btn-control" onclick="changeAnswer()">Change answer (Ask)</button>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-            <button class="btn-control" onclick="importAnswers()">Import</button><button class="btn-control" onclick="exportAnswers()">Export</button>
-            <button id="toggle-voice-btn" class="btn-control" onclick="toggleLiveVoice()">say answers when typing (Close)</button><button class="btn-control" onclick="speakAllAnswers()">say answers</button>
+            <button class="btn-control" onclick="importAnswers()">Import</button><button class="btn-control"
+                onclick="exportAnswers()">Export</button>
+            <button id="toggle-voice-btn" class="btn-control" onclick="toggleLiveVoice()">say answers when typing
+                (Close)</button><button class="btn-control" onclick="speakAllAnswers()">say answers</button>
         </div>
     </div>
+
+
+    <footer
+        style="text-align: center; align-items: center; display: flex; margin-top: 80px; padding-bottom: 40px; color: #BBB; font-size: 0.9rem;gap: 20px;">
+        <div style="flex: 1;height: 2px;background: #EEE;"></div>
+        &copy; 2026 麥塊藍月光 &bull; kester0312.github.io
+        <div style="flex: 1;height: 2px;background: #EEE;"></div>
+    </footer>
 
     <script>
         let answers = []; let liveVoiceEnabled = false;
@@ -100,63 +326,63 @@
             return n <= 20 ? words[n] : n.toString();
         }
 
-        function toggleLiveVoice() { 
-            liveVoiceEnabled = !liveVoiceEnabled; 
-            const btn = document.getElementById('toggle-voice-btn'); 
-            btn.innerText = `say answers when typing (${liveVoiceEnabled ? 'Open' : 'Close'})`; 
-            btn.classList.toggle('btn-voice-active', liveVoiceEnabled); 
+        function toggleLiveVoice() {
+            liveVoiceEnabled = !liveVoiceEnabled;
+            const btn = document.getElementById('toggle-voice-btn');
+            btn.innerText = `say answers when typing (${liveVoiceEnabled ? 'Open' : 'Close'})`;
+            btn.classList.toggle('btn-voice-active', liveVoiceEnabled);
         }
 
-        function speak(text) { 
-            if (!window.speechSynthesis) return; 
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(text); 
-            utterance.lang = 'en-US'; utterance.rate = 1.0; 
-            window.speechSynthesis.speak(utterance); 
+        function speak(text) {
+            if (!window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US'; utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
         }
 
-        function speakAllAnswers() { 
-            if (answers.length === 0) return speak("No answers"); 
+        function speakAllAnswers() {
+            if (answers.length === 0) return speak("No answers");
             let text = answers.map((ans, i) => {
                 let num = getEnglishNumber(i + 1);
                 let label = ans === '/' ? 'skip' : (ans.toUpperCase() === 'D' ? 'Dog' : ans);
                 return `${num} ${label}`;
-            }).join(' ... '); 
-            speak(text); 
+            }).join(' ... ');
+            speak(text);
         }
 
-        function addAnswer(val) { 
-            answers.push(val); 
-            updateDisplay(); 
-            if (liveVoiceEnabled) { 
-                let label = val === '/' ? 'skip' : (val.toUpperCase() === 'D' ? 'Dog' : val); 
-                speak(`${getEnglishNumber(answers.length)} ${label}`); 
-            } 
+        function addAnswer(val) {
+            answers.push(val);
+            updateDisplay();
+            if (liveVoiceEnabled) {
+                let label = val === '/' ? 'skip' : (val.toUpperCase() === 'D' ? 'Dog' : val);
+                speak(`${getEnglishNumber(answers.length)} ${label}`);
+            }
         }
 
-        function updateCounter() { 
+        function updateCounter() {
             const counts = {};
             buttonConfig.forEach(config => counts[config.label] = 0);
             answers.forEach(val => { if (counts.hasOwnProperty(val)) counts[val]++; else counts[val] = (counts[val] || 0) + 1; });
             const counterText = Object.keys(counts).map(key => `${key}:${counts[key]}`).join(' , ');
-            document.getElementById('mc-counter').innerText = `MC No. count: ${counterText}`; 
+            document.getElementById('mc-counter').innerText = `MC No. count: ${counterText}`;
         }
 
-        function updateDisplay() { 
-            const display = document.getElementById('display'); 
-            display.innerText = answers.length === 0 ? "No answers yet." : answers.map((ans, i) => `${i + 1}.${ans}`).join(' '); 
-            updateCounter(); 
+        function updateDisplay() {
+            const display = document.getElementById('display');
+            display.innerText = answers.length === 0 ? "No answers yet." : answers.map((ans, i) => `${i + 1}.${ans}`).join(' ');
+            updateCounter();
         }
 
-        function renderMainButtons() { 
-            const container = document.getElementById('button-container'); 
-            container.innerHTML = ''; 
-            buttonConfig.forEach((config, i) => { 
-                const btn = document.createElement('button'); 
-                btn.id = `btn-idx-${i}`; btn.className = 'btn-big'; btn.innerText = config.label; 
-                btn.onclick = () => addAnswer(config.label); 
-                container.appendChild(btn); 
-            }); 
+        function renderMainButtons() {
+            const container = document.getElementById('button-container');
+            container.innerHTML = '';
+            buttonConfig.forEach((config, i) => {
+                const btn = document.createElement('button');
+                btn.id = `btn-idx-${i}`; btn.className = 'btn-big'; btn.innerText = config.label;
+                btn.onclick = () => addAnswer(config.label);
+                container.appendChild(btn);
+            });
         }
 
         function openSettings() { renderTables(); document.getElementById('modal-overlay').style.display = 'flex'; }
@@ -193,8 +419,9 @@
         function changeAnswer() { let num = prompt("Change question number:"); let idx = parseInt(num) - 1; if (!isNaN(idx) && idx >= 0 && idx < answers.length) { let input = prompt(`New answer for Q${num}:`, answers[idx]); if (input) { answers[idx] = input; updateDisplay(); } } }
         function importAnswers() { let raw = prompt("Format: A|B|C|"); if (raw) { answers = raw.split('|').filter(x => x.trim()).map(x => x.trim()); updateDisplay(); } }
         function exportAnswers() { if (!answers.length) return; let formatted = answers.join('|') + '|'; navigator.clipboard.writeText(formatted).then(() => alert("Copied!")); }
-        
+
         renderMainButtons(); updateDisplay();
     </script>
 </body>
+
 </html>

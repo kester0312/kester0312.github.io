@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Coordinate DX Calculator</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 400px; }
+        .input-group { margin-bottom: 15px; }
+        input { width: 60px; padding: 5px; }
+        .result-row { margin: 10px 0; display: flex; align-items: center; gap: 10px; }
+        button { cursor: pointer; padding: 5px 10px; }
+        .copy-btn { font-size: 0.8em; }
+    </style>
+</head>
+<body>
+
+    <h3>Coordinate Calculator</h3>
+
+    <div class="input-group">
+        <label>Point 1 (x1 y1 z1):</label><br>
+        <input type="number" id="x1" placeholder="x1">
+        <input type="number" id="y1" placeholder="y1">
+        <input type="number" id="z1" placeholder="z1">
+    </div>
+
+    <div class="input-group">
+        <label>Point 2 (x2 y2 z2):</label><br>
+        <input type="number" id="x2" placeholder="x2">
+        <input type="number" id="y2" placeholder="y2">
+        <input type="number" id="z2" placeholder="z2">
+    </div>
+
+    <button onclick="calculate()">Calculate</button>
+    <button onclick="reset()">Refresh</button>
+
+    <div id="results">
+        <div class="result-row">
+            X3 (Min): <span id="x3">0</span> <button class="copy-btn" onclick="copy('x3')">Copy</button>
+            X4 (Diff): <span id="x4">0</span> <button class="copy-btn" onclick="copy('x4')">Copy</button>
+        </div>
+        <div class="result-row">
+            Y3 (Min): <span id="y3">0</span> <button class="copy-btn" onclick="copy('y3')">Copy</button>
+            Y4 (Diff): <span id="y4">0</span> <button class="copy-btn" onclick="copy('y4')">Copy</button>
+        </div>
+        <div class="result-row">
+            Z3 (Min): <span id="z3">0</span> <button class="copy-btn" onclick="copy('z3')">Copy</button>
+            Z4 (Diff): <span id="z4">0</span> <button class="copy-btn" onclick="copy('z4')">Copy</button>
+        </div>
+    </div>
+
+    <script>
+        function calculate() {
+            const axes = ['x', 'y', 'z'];
+            axes.forEach(axis => {
+                const v1 = parseFloat(document.getElementById(axis + '1').value) || 0;
+                const v2 = parseFloat(document.getElementById(axis + '2').value) || 0;
+                
+                document.getElementById(axis + '3').innerText = Math.min(v1, v2);
+                document.getElementById(axis + '4').innerText = Math.abs(v1 - v2);
+            });
+        }
+
+        function reset() {
+            document.querySelectorAll('input').forEach(i => i.value = '');
+            document.querySelectorAll('span').forEach(s => s.innerText = '0');
+        }
+
+        function copy(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text);
+            alert("Copied: " + text);
+        }
+    </script>
+</body>
+</html>

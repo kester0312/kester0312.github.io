@@ -15,6 +15,7 @@
   border-radius: 12px; /* Slightly tighter corners */
   box-shadow: 0 5px #fbc02d;
   transition: all 0.1s ease;
+  margin: 0 0px 10px 0; /* Adds 10px space to the right and bottom of each button */
 }
 
 .buttonstyle:hover {
