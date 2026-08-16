@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Screen & Viewport Dimensions</title>
+  <title>Minecraft dx Calculator</title>
+  <link rel="stylesheet" href="\code/css/button.css">
   <style>
     * {
       box-sizing: border-box;
@@ -22,7 +23,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding-top: 20dvh;
+      padding-top: 13dvh;
     }
 
     .card {
@@ -31,7 +32,7 @@
       border-radius: 20px;
       padding: 30px;
       width: 80dvw;
-      max-width: 400px;
+      max-width: 500px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
       text-align: center;
     }
@@ -45,7 +46,6 @@
 
     .section {
       background: #f9f9f9;
-      border-left: 4px solid #ffd200;
       border-radius: 10px;
       padding: 15px;
       margin-bottom: 15px;
@@ -62,12 +62,12 @@
 
     .dimension-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
     }
 
     .metric {
-      background: #ffffff;
+      background: #dcffec;
       padding: 10px;
       border-radius: 8px;
       border: 1px solid #eee;
@@ -76,52 +76,125 @@
     .metric-label {
       font-size: 0.75rem;
       color: #555;
+      margin-bottom: 5px;
     }
 
-    .metric-value {
+    .metric-value input {
+      width: 100%;
+      max-width: 100px;
+      padding: 2px;
       font-family: 'Courier New', Courier, monospace;
-      font-size: 1.25rem;
+      font-size: 1rem;
       font-weight: 700;
       color: #1a1a1a;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .metric-value input {
+      width: 100%;
+      max-width: 100px;
+      padding: 2px 2px 2px 0px;
+      /* Top Right Bottom Left (15px padding-left shifts text right) */
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #dcffec;
+    }
+
+
+    .metric-value input:focus {
+      outline: none;
+      border-color: #888;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 6px 14px;
+      font-size: 0.9rem;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #eaeaea;
     }
   </style>
 </head>
 
 <body>
 
-
   <script src="\code/js/header.js"></script>
   <div class="container">
     <div class="card">
-      <div class="title">GetPixel</div>
+      <div class="title">Minecraft dx Calculator</div>
 
-      <!-- Viewport / Web Page Dimensions -->
+      <!-- Point 1 -->
       <div class="section">
-        <div class="section-title">Web Size</div>
+        <div class="section-title">Point 1</div>
         <div class="dimension-grid">
           <div class="metric">
-            <div class="metric-label">Width</div>
-            <div class="metric-value" id="web-width">0px</div>
+            <div class="metric-label">X</div>
+            <div class="metric-value">
+              <input type="number" id="x1" placeholder="0">
+            </div>
           </div>
           <div class="metric">
-            <div class="metric-label">Height</div>
-            <div class="metric-value" id="web-height">0px</div>
+            <div class="metric-label">Y</div>
+            <div class="metric-value">
+              <input type="number" id="y1" placeholder="0">
+            </div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Z</div>
+            <div class="metric-value">
+              <input type="number" id="z1" placeholder="0">
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Screen Physical Resolution -->
+      <!-- Point 2 -->
       <div class="section">
-        <div class="section-title">Screen Size</div>
+        <div class="section-title">Point 2</div>
         <div class="dimension-grid">
           <div class="metric">
-            <div class="metric-label">Width</div>
-            <div class="metric-value" id="screen-width">0px</div>
+            <div class="metric-label">X</div>
+            <div class="metric-value">
+              <input type="number" id="x2" placeholder="0">
+            </div>
           </div>
           <div class="metric">
-            <div class="metric-label">Height</div>
-            <div class="metric-value" id="screen-height">0px</div>
+            <div class="metric-label">Y</div>
+            <div class="metric-value">
+              <input type="number" id="y2" placeholder="0">
+            </div>
           </div>
+          <div class="metric">
+            <div class="metric-label">Z</div>
+            <div class="metric-value">
+              <input type="number" id="z2" placeholder="0">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="section">
+        <div class="section-title">Result</div>
+        <div style="align-items: center; display: flex; justify-content: center;">
+          <p id="web-result">x=0,dx=0,y=0,dy=0,z=0,dz=0</p>
+          <p style="padding-right: 15px;"></p>
+          <button class="buttonstyle" type="button" id="add" onclick="copyResult()" style="padding: 4px 10px; border-radius: 9px; transform: translateY(3.5px);">
+            Copy
+          </button>
         </div>
       </div>
     </div>
@@ -132,19 +205,35 @@
   </footer>
 
   <script>
-    function updateDimensions() {
-      // Browser viewport dimensions
-      document.getElementById('web-width').textContent = window.innerWidth + 'px';
-      document.getElementById('web-height').textContent = window.innerHeight + 'px';
+    function calculateCoordinates() {
+      const axes = ['x', 'y', 'z'];
+      let resultParts = [];
 
-      // Device screen resolution
-      document.getElementById('screen-width').textContent = screen.width + 'px';
-      document.getElementById('screen-height').textContent = screen.height + 'px';
+      axes.forEach(axis => {
+        const v1 = parseFloat(document.getElementById(axis + '1').value) || 0;
+        const v2 = parseFloat(document.getElementById(axis + '2').value) || 0;
+
+        const minVal = Math.min(v1, v2);
+        const diffVal = Math.abs(v1 - v2);
+
+        resultParts.push(`${axis}=${minVal},d${axis}=${diffVal}`);
+      });
+
+      document.getElementById('web-result').textContent = resultParts.join(',');
     }
 
-    // Run on load and whenever browser is resized
-    window.addEventListener('load', updateDimensions);
-    window.addEventListener('resize', updateDimensions);
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('input', calculateCoordinates);
+    });
+
+    function copyResult() {
+      const textToCopy = document.getElementById('web-result').textContent;
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        alert("Copied: " + textToCopy);
+      }).catch(err => {
+        console.error('Failed to copy text: ', err);
+      });
+    }
   </script>
 
 </body>
