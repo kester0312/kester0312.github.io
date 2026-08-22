@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Tool Hub</title>
+    <!-- External Libraries -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding: 30px 15px;
+        }
+
+        .main-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 440px;
+            padding-top: 70px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            color: #2c3e50;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #007bff;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        button.secondary {
+            background-color: #6c757d;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button.secondary:hover {
+            background-color: #5a6268;
+        }
+
+        #reader {
+            width: 100%;
+            margin-top: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+            border: 1px solid #ddd;
+        }
+
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            margin-top: 16px;
+            padding: 16px;
+            background: #fafafa;
+            border: 1px dashed #ddd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    
+
+    <script src="../code/js/header.js"></script>
+
+
+    <div class="main-wrapper">
+        
+        <!-- Reader Card -->
+        <div class="card">
+            <h2>QR Code Reader</h2>
+            <div class="form-group">
+                <label for="qr-text-box">Scanned Result:</label>
+                <input type="text" id="qr-text-box" placeholder="Result will appear here...">
+                
+                <div class="btn-group">
+                    <button onclick="toggleCamera()">📷 Live Camera</button>
+                    <button class="secondary" onclick="triggerFileInput()">📁 Upload Image</button>
+                </div>
+
+                <!-- Native File Input (Triggers phone gallery/camera prompt on mobile) -->
+                <input type="file" id="qr-file-input" accept="image/*" style="display: none;">
+            </div>
+
+            <!-- Viewport for live camera scanning -->
+            <div id="reader"></div>
+        </div>
+
+        <!-- Generator Card -->
+        <div class="card">
+            <h2>QR Code Generator</h2>
+            <div class="form-group">
+                <label for="qr-text">Type to generate dynamic QR code:</label>
+                <input type="text" id="qr-text" value="Hello" placeholder="Type something...">
+            </div>
+            <div id="qrcode"></div>
+        </div>
+
+    </div>
+
+    <script>
+        let html5QrCode;
+        let isScanning = false;
+
+        function getScanner() {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            return html5QrCode;
+        }
+
+        // --- 1. Live Phone/Webcam Scanner ---
+        function toggleCamera() {
+            const readerDiv = document.getElementById('reader');
+            const scanner = getScanner();
+
+            if (isScanning) {
+                stopCamera();
+                return;
+            }
+
+            readerDiv.style.display = 'block';
+            
+            // facingMode "environment" selects the back camera on mobile phones
+            scanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 200, height: 200 } },
+                (decodedText) => {
+                    document.getElementById('qr-text-box').value = decodedText;
+                    stopCamera();
+                },
+                (errorMessage) => {
+                    // Ignore frame scan errors
+                }
+            ).catch(err => {
+                alert("Camera access error: " + err);
+                readerDiv.style.display = 'none';
+            });
+
+            isScanning = true;
+        }
+
+        function stopCamera() {
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('reader').style.display = 'none';
+                    isScanning = false;
+                }).catch(err => console.error(err));
+            }
+        }
+
+        // --- 2. Image File Upload / Snapshot ---
+        const fileInput = document.getElementById('qr-file-input');
+
+        function triggerFileInput() {
+            if (isScanning) stopCamera();
+            fileInput.click();
+        }
+
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length === 0) return;
+            
+            const scanner = getScanner();
+            const imageFile = e.target.files[0];
+
+            scanner.scanFile(imageFile, false)
+                .then(decodedText => {
+                    document.getElementById('qr-text-box').value = decodedText;
+                })
+                .catch(err => {
+                    alert("No valid QR code found in this image.");
+                });
+        });
+
+        // --- 3. Dynamic QR Generator ---
+        const inputField = document.getElementById("qr-text");
+        const qrContainer = document.getElementById("qrcode");
+
+        const qrcode = new QRCode(qrContainer, {
+            text: inputField.value,
+            width: 140,
+            height: 140
+        });
+
+        inputField.addEventListener("input", function () {
+            qrcode.makeCode(this.value);
+        });
+    </script>
+
+</body>
+
+</html>
