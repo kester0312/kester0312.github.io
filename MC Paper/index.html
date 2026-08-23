@@ -908,6 +908,8 @@
                                     class="im_input" type="number" value="3508"><br />
                                 <label class="im_label">Search Percent:</label><input id="im_searchPercentBox"
                                     class="im_input" type="number" value="1.5" min="1" max="20"><br />
+                                <label class="im_label">Thresholded:</label><input id="im_thresholded" type="checkbox"
+                                    style="margin-bottom: 8px;"><br />
 
                                 <label class="im_label">Settings JSON:</label><input id="im_settingsInput"
                                     class="im_input" type="file" accept=".json">
@@ -2036,7 +2038,7 @@
         let im_scale = 1, im_offsetX = 0, im_offsetY = 0;
         let im_clicks = [], im_refinedPoints = [], im_selectedPointIndex = -1;
 
-        let im_settings = { save_file: "Save", save_pixels_x: 2480, save_pixels_y: 3508, search_percent: 1.5 };
+        let im_settings = { save_file: "Save", save_pixels_x: 2480, save_pixels_y: 3508, search_percent: 1.5, thresholded: true };
         let im_originalFileName = "Scanned_Image"; // Default fallback
 
         function im_formatFileName(template, origName) {
@@ -2084,6 +2086,7 @@
             im_settings.save_pixels_x = parseInt(document.getElementById('im_savePixelsX').value);
             im_settings.save_pixels_y = parseInt(document.getElementById('im_savePixelsY').value);
             im_settings.search_percent = parseFloat(document.getElementById('im_searchPercentBox').value);
+            im_settings.thresholded = document.getElementById('im_thresholded').checked;
         }
 
         function im_updateUIFromSettings() {
@@ -2091,10 +2094,11 @@
             document.getElementById('im_savePixelsX').value = im_settings.save_pixels_x;
             document.getElementById('im_savePixelsY').value = im_settings.save_pixels_y;
             document.getElementById('im_searchPercentBox').value = im_settings.search_percent;
+            document.getElementById('im_thresholded').checked = !!im_settings.thresholded;
         }
 
-        document.querySelectorAll('#im_saveFile,#im_savePixelsX,#im_savePixelsY,#im_searchPercentBox')
-            .forEach(el => el.addEventListener('input', im_updateSettingsFromUI));
+        document.querySelectorAll('#im_saveFile,#im_savePixelsX,#im_savePixelsY,#im_searchPercentBox,#im_thresholded')
+            .forEach(el => el.addEventListener('change', im_updateSettingsFromUI));
 
         document.getElementById('im_settingsInput').addEventListener('change', async e => {
             const file = e.target.files[0];
@@ -2306,6 +2310,26 @@
                 let rs = new cv.Mat(); cv.resize(im_alignedMat, rs, new cv.Size(im_settings.save_pixels_x, im_settings.save_pixels_y));
                 im_alignedMat.delete(); im_alignedMat = rs;
             }
+
+            if (im_settings.thresholded) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = im_alignedMat.cols;
+                tempCanvas.height = im_alignedMat.rows;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                let rgba = new cv.Mat();
+                cv.cvtColor(im_alignedMat, rgba, cv.COLOR_BGR2RGBA);
+                tempCtx.putImageData(new ImageData(new Uint8ClampedArray(rgba.data), rgba.cols, rgba.rows), 0, 0);
+                rgba.delete();
+
+                applyAdaptiveThreshold(tempCanvas);
+
+                const thresholdedData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                let thresholdedMat = cv.matFromImageData(thresholdedData);
+                cv.cvtColor(thresholdedMat, im_alignedMat, cv.COLOR_RGBA2BGR);
+                thresholdedMat.delete();
+            }
+            
             im_drawImage(im_alignedMat);
             document.getElementById('im_downloadBtn').disabled = false; document.getElementById('im_copyBtn').disabled = false; document.getElementById('im_copyDataUrlBtn').disabled = false;
             srcPts.delete(); dstPts.delete(); M.delete(); bgr.delete(); thresh.delete(); gray.delete();
@@ -2316,6 +2340,64 @@
             const c = document.createElement('canvas'); c.width = rgba.cols; c.height = rgba.rows;
             c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(rgba.data), rgba.cols, rgba.rows), 0, 0);
             rgba.delete(); return new Promise(res => c.toBlob(res, type, q));
+        }
+
+        function applyAdaptiveThreshold(canvas, windowRatio = 0.12, sensitivity = 0.15) {
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            const { width, height } = canvas;
+            const imgData = ctx.getImageData(0, 0, width, height);
+            const data = imgData.data;
+            const pixelCount = width * height;
+
+            const pixels32 = new Uint32Array(data.buffer);
+            const grays = new Uint8Array(pixelCount);
+            const integral = new Uint32Array(pixelCount);
+
+            for (let y = 0; y < height; y++) {
+                let rowSum = 0;
+                const rowOffset = y * width;
+                const prevRowOffset = (y - 1) * width;
+
+                for (let x = 0; x < width; x++) {
+                    const idx = rowOffset + x;
+                    const px = idx << 2;
+                    const gray = (data[px] * 299 + data[px + 1] * 587 + data[px + 2] * 114) / 1000 | 0;
+                    grays[idx] = gray;
+                    rowSum += gray;
+                    integral[idx] = (y === 0) ? rowSum : integral[prevRowOffset + x] + rowSum;
+                }
+            }
+
+            const s = Math.max(1, Math.round(width * windowRatio));
+            const s2 = s >> 1;
+            const factor = 1.0 - sensitivity;
+            const WHITE = 0xFFFFFFFF;
+            const BLACK = 0xFF000000;
+
+            for (let y = 0; y < height; y++) {
+                const y1 = Math.max(0, y - s2);
+                const y2 = Math.min(height - 1, y + s2);
+                const y1Offset = (y1 - 1) * width;
+                const y2Offset = y2 * width;
+
+                for (let x = 0; x < width; x++) {
+                    const x1 = Math.max(0, x - s2);
+                    const x2 = Math.min(width - 1, x + s2);
+                    const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+
+                    const D = integral[y2Offset + x2];
+                    const B = (y1 > 0) ? integral[y1Offset + x2] : 0;
+                    const C = (x1 > 0) ? integral[y2Offset + (x1 - 1)] : 0;
+                    const A = (x1 > 0 && y1 > 0) ? integral[y1Offset + (x1 - 1)] : 0;
+
+                    const sum = D - B - C + A;
+                    const idx = y * width + x;
+
+                    pixels32[idx] = (grays[idx] * count < sum * factor) ? BLACK : WHITE;
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
         }
     </script>
 </body>
