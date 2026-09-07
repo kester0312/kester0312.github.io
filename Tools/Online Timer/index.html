@@ -583,7 +583,7 @@
           audio.play().then(() => {
             audio.pause();
             audio.currentTime = 0;
-            audio.muted = false; // Unmute for actual timer announcements
+            audio.muted = true; // Unmute for actual timer announcements
           }).catch(() => { });
           audioCache[filename] = audio;
         }
