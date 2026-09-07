@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>MC Paper System</title>
     <script src="./McScaner.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         /* --- 1. GLOBAL LAYOUT --- */
         body {
@@ -955,8 +956,12 @@
                 </select>
             </div>
 
-            <button class="btn-answer" onclick="pasteAnswerKey()">🎯 PASTE ANSWER KEY</button>
-
+            <!-- WITH THIS: -->
+            <div class="input-group-row">
+                <button class="btn-answer" onclick="pasteAnswerKey()">🎯 PASTE ANS KEY</button>
+                <button class="btn-answer" style="background: #27ae60;" onclick="openQrModal()">📱 QR CODE'S
+                    ANS</button>
+            </div>
             <div class="setting-row"><span>Zoom: <b id="zoomLabel">100</b>%</span><input type="range" id="zoomRange"
                     min="10" max="200" value="100"></div>
             <div class="setting-row"><span>Search: <b id="searchLabel">4</b>%</span><input type="range" id="searchRange"
@@ -974,6 +979,31 @@
 
     <div class="viewport"><canvas id="canvas"></canvas></div>
 
+    <!-- QR Scanner Popup Modal -->
+    <div id="qrModalOverlay"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; z-index: 2000;">
+        <div
+            style="background: white; padding: 20px; border-radius: 12px; width: 340px; text-align: center; display: flex; flex-direction: column; gap: 12px; position: relative;">
+            <h3 style="margin: 0; color: #2c3e50;">Scan Answer Key QR</h3>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="toggleQrCamera()"
+                    style="flex:1; padding: 10px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">📷
+                    Live Camera</button>
+                <button onclick="triggerQrFileInput()"
+                    style="flex:1; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">📁
+                    Upload Image</button>
+            </div>
+
+            <input type="file" id="qrFileInput" accept="image/*" style="display: none;">
+            <div id="qrReader"
+                style="width: 100%; display: none; border: 1px solid #ddd; margin-top: 10px; border-radius: 8px; overflow: hidden;">
+            </div>
+
+            <button onclick="closeQrModal()"
+                style="background: #e74c3c; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px;">Close</button>
+        </div>
+    </div>
+
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -990,17 +1020,11 @@
         async function pasteAnswerKey() {
             let text = "";
             try {
-                // Try automatic clipboard first
                 text = await navigator.clipboard.readText();
             } catch (err) {
-                // Fallback to manual prompt if blocked
                 text = window.prompt("Clipboard blocked. Please paste your Answer Key (e.g. A|B|C) here:");
             }
-
-            if (text && text.trim().length > 0) {
-                answerKey = text.split('|').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
-                processAllGroups();
-            }
+            setAnswerKeyFromText(text);
         }
 
         async function pasteImage() {
@@ -2329,7 +2353,7 @@
                 cv.cvtColor(thresholdedMat, im_alignedMat, cv.COLOR_RGBA2BGR);
                 thresholdedMat.delete();
             }
-            
+
             im_drawImage(im_alignedMat);
             document.getElementById('im_downloadBtn').disabled = false; document.getElementById('im_copyBtn').disabled = false; document.getElementById('im_copyDataUrlBtn').disabled = false;
             srcPts.delete(); dstPts.delete(); M.delete(); bgr.delete(); thresh.delete(); gray.delete();
@@ -2399,6 +2423,89 @@
 
             ctx.putImageData(imgData, 0, 0);
         }
+
+        function setAnswerKeyFromText(text) {
+            if (text && text.trim().length > 0) {
+                answerKey = text.split('|').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
+                processAllGroups();
+            }
+        }
+
+        let qrScanner = null;
+        let isQrScanning = false;
+
+        function getQrScanner() {
+            if (!qrScanner) {
+                qrScanner = new Html5Qrcode("qrReader");
+            }
+            return qrScanner;
+        }
+
+        function openQrModal() {
+            document.getElementById('qrModalOverlay').style.display = 'flex';
+        }
+
+        function closeQrModal() {
+            stopQrCamera();
+            document.getElementById('qrModalOverlay').style.display = 'none';
+        }
+
+        function toggleQrCamera() {
+            const readerDiv = document.getElementById('qrReader');
+            const scanner = getQrScanner();
+
+            if (isQrScanning) {
+                stopQrCamera();
+                return;
+            }
+
+            readerDiv.style.display = 'block';
+            scanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 200, height: 200 } },
+                (decodedText) => {
+                    setAnswerKeyFromText(decodedText);
+                    closeQrModal();
+                },
+                () => { } // Ignore continuous frame scan errors
+            ).catch(err => {
+                alert("Camera access error: " + err);
+                readerDiv.style.display = 'none';
+            });
+
+            isQrScanning = true;
+        }
+
+        function stopQrCamera() {
+            if (qrScanner && isQrScanning) {
+                qrScanner.stop().then(() => {
+                    document.getElementById('qrReader').style.display = 'none';
+                    isQrScanning = false;
+                }).catch(err => console.error(err));
+            }
+        }
+
+        function triggerQrFileInput() {
+            if (isQrScanning) stopQrCamera();
+            document.getElementById('qrFileInput').click();
+        }
+
+        // Register file input listener for uploaded QR images
+        document.getElementById('qrFileInput').addEventListener('change', e => {
+            if (e.target.files.length === 0) return;
+
+            const scanner = getQrScanner();
+            const imageFile = e.target.files[0];
+
+            scanner.scanFile(imageFile, false)
+                .then(decodedText => {
+                    setAnswerKeyFromText(decodedText);
+                    closeQrModal();
+                })
+                .catch(() => {
+                    alert("No valid QR code found in this image.");
+                });
+        });
     </script>
 </body>
 

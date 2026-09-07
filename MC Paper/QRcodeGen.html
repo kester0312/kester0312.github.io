@@ -134,20 +134,20 @@
 </head>
 
 <body>
-    
+
 
     <script src="../code/js/header.js"></script>
 
 
     <div class="main-wrapper">
-        
+
         <!-- Reader Card -->
         <div class="card">
             <h2>QR Code Reader</h2>
             <div class="form-group">
                 <label for="qr-text-box">Scanned Result:</label>
                 <input type="text" id="qr-text-box" placeholder="Result will appear here...">
-                
+
                 <div class="btn-group">
                     <button onclick="toggleCamera()">📷 Live Camera</button>
                     <button class="secondary" onclick="triggerFileInput()">📁 Upload Image</button>
@@ -195,7 +195,7 @@
             }
 
             readerDiv.style.display = 'block';
-            
+
             // facingMode "environment" selects the back camera on mobile phones
             scanner.start(
                 { facingMode: "environment" },
@@ -234,7 +234,7 @@
 
         fileInput.addEventListener('change', e => {
             if (e.target.files.length === 0) return;
-            
+
             const scanner = getScanner();
             const imageFile = e.target.files[0];
 
@@ -251,14 +251,32 @@
         const inputField = document.getElementById("qr-text");
         const qrContainer = document.getElementById("qrcode");
 
-        const qrcode = new QRCode(qrContainer, {
-            text: inputField.value,
-            width: 140,
-            height: 140
-        });
+        function generateQR(text) {
+            qrContainer.innerHTML = ""; // Clear previous QR instance
 
+            if (!text.trim()) return;
+
+            try {
+                new QRCode(qrContainer, {
+                    text: text,
+                    width: 180,
+                    height: 180,
+                    // 'L' (Low) maximizes text capacity (up to ~3,000 alphanumeric characters)
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            } catch (err) {
+                qrContainer.innerHTML = `<span style="color: red; font-size: 12px; text-align: center;">
+            Text is too long for a single QR code!
+        </span>`;
+            }
+        }
+
+        // Initial Generation
+        generateQR(inputField.value);
+
+        // Update on input
         inputField.addEventListener("input", function () {
-            qrcode.makeCode(this.value);
+            generateQR(this.value);
         });
     </script>
 
