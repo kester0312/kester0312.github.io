@@ -583,7 +583,6 @@
           audio.play().then(() => {
             audio.pause();
             audio.currentTime = 0;
-            audio.muted = true; // Unmute for actual timer announcements
           }).catch(() => { });
           audioCache[filename] = audio;
         }
@@ -592,7 +591,6 @@
 
     // Function to test audio output by speaking "Test"
     function testSound() {
-      unlockAudioForIOS();
       speakText("Test");
     }
 
@@ -754,6 +752,8 @@
     // Audio File Player helper (Uses cached primed elements)
     function playAudioFile(filename) {
       if (audioCache[filename]) {
+        audioCache[filename].muted = false;
+        audioCache[filename].volume = 1.0;
         audioCache[filename].currentTime = 0;
         audioCache[filename].play().catch(e => console.log("Audio play blocked:", filename, e));
       } else {
