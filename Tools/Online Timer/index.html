@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -175,6 +176,25 @@
       cursor: not-allowed;
     }
 
+    .test-sound-btn {
+      align-self: center;
+      margin-top: 4px;
+      margin-left: 0;
+      padding: 6px 14px;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .test-sound-btn:hover {
+      background-color: #5a6268;
+    }
+
     .info-preview {
       margin: 15px 0;
       font-size: 0.95rem;
@@ -274,9 +294,20 @@
       font-weight: bold;
     }
 
-    .status-waiting { background: #ffeeba; color: #856404; }
-    .status-running { background: #d4edda; color: #155724; }
-    .status-ended { background: #f8d7da; color: #721c24; }
+    .status-waiting {
+      background: #ffeeba;
+      color: #856404;
+    }
+
+    .status-running {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-ended {
+      background: #f8d7da;
+      color: #721c24;
+    }
 
     .time-range {
       font-size: 1.15rem;
@@ -330,6 +361,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <div class="container" id="mainContainer">
@@ -365,7 +397,8 @@
             </div>
           </div>
         </div>
-        <div class="error-msg" id="timeError">Start time cannot be earlier than or equal to the current time. Please select a future time.</div>
+        <div class="error-msg" id="timeError">Start time cannot be earlier than or equal to the current time. Please
+          select a future time.</div>
       </div>
 
       <div class="form-group">
@@ -404,6 +437,7 @@
           <input type="checkbox" id="announce15Min">
           15 mins left announce
         </label>
+        <button type="button" class="test-sound-btn" onclick="testSound()">Test Sound</button>
       </div>
 
       <div class="info-preview" id="schedulePreview">Exam Period: --:-- - --:--</div>
@@ -418,11 +452,13 @@
         <div class="part-clock">
           <div class="clock-wrapper">
             <svg class="real-clock" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="47" fill="none" stroke="none"/>
-              <line id="hourHand" x1="50" y1="50" x2="50" y2="28" stroke="#222" stroke-width="4" stroke-linecap="round"/>
-              <line id="minuteHand" x1="50" y1="50" x2="50" y2="18" stroke="#0066cc" stroke-width="3" stroke-linecap="round"/>
-              <line id="secondHand" x1="50" y1="50" x2="50" y2="12" stroke="#d9534f" stroke-width="1.5"/>
-              <circle cx="50" cy="50" r="3.5" fill="#222"/>
+              <circle cx="50" cy="50" r="47" fill="none" stroke="none" />
+              <line id="hourHand" x1="50" y1="50" x2="50" y2="28" stroke="#222" stroke-width="4"
+                stroke-linecap="round" />
+              <line id="minuteHand" x1="50" y1="50" x2="50" y2="18" stroke="#0066cc" stroke-width="3"
+                stroke-linecap="round" />
+              <line id="secondHand" x1="50" y1="50" x2="50" y2="12" stroke="#d9534f" stroke-width="1.5" />
+              <circle cx="50" cy="50" r="3.5" fill="#222" />
             </svg>
           </div>
         </div>
@@ -461,6 +497,7 @@
               <input type="checkbox" id="timerAnnounce15Min">
               15 mins left announce
             </label>
+            <button type="button" class="test-sound-btn" onclick="testSound()">Test Sound</button>
           </div>
         </div>
       </div>
@@ -515,6 +552,49 @@
     let startAnnounced = false;
     let announcement15Triggered = false;
     let announcement5Triggered = false;
+
+    // iOS Web Audio Context & Audio Preloading Management
+    let globalAudioCtx = null;
+    const audioCache = {};
+
+    function unlockAudioForIOS() {
+      // 1. Initialize and resume Web Audio Context on user click
+      if (!globalAudioCtx) {
+        globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (globalAudioCtx.state === 'suspended') {
+        globalAudioCtx.resume();
+      }
+
+      // 2. Prime SpeechSynthesis engine on iOS with silent utterance
+      if ('speechSynthesis' in window) {
+        const silentSpeech = new SpeechSynthesisUtterance('');
+        silentSpeech.volume = 0;
+        window.speechSynthesis.speak(silentSpeech);
+      }
+
+      // 3. Preload and prime HTML5 Audio elements silently
+      const files = ['15_mins_left.mp3', '5_mins_left.mp3'];
+      files.forEach(filename => {
+        if (!audioCache[filename]) {
+          const audio = new Audio(filename);
+          audio.muted = true; // Mute to guarantee silence during unlock
+          audio.load();
+          audio.play().then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.muted = false; // Unmute for actual timer announcements
+          }).catch(() => { });
+          audioCache[filename] = audio;
+        }
+      });
+    }
+
+    // Function to test audio output by speaking "Test"
+    function testSound() {
+      unlockAudioForIOS();
+      speakText("Test");
+    }
 
     /**
      * Web Size Layout Detector
@@ -642,7 +722,7 @@
 
       const tens = ["", "", "twenty", "thirty", "forty", "fifty"];
       const ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
-                    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+        "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
 
       let minuteStr = "";
       if (minutes === 0) {
@@ -671,10 +751,15 @@
       }
     }
 
-    // Audio File Player helper
+    // Audio File Player helper (Uses cached primed elements)
     function playAudioFile(filename) {
-      const audio = new Audio(filename);
-      audio.play().catch(e => console.log("Audio file play blocked or not found:", filename, e));
+      if (audioCache[filename]) {
+        audioCache[filename].currentTime = 0;
+        audioCache[filename].play().catch(e => console.log("Audio play blocked:", filename, e));
+      } else {
+        const audio = new Audio(filename);
+        audio.play().catch(e => console.log("Audio file play blocked or not found:", filename, e));
+      }
     }
 
     function getExamDates() {
@@ -701,20 +786,26 @@
 
     function ringBell() {
       try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+        if (!globalAudioCtx) {
+          globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (globalAudioCtx.state === 'suspended') {
+          globalAudioCtx.resume();
+        }
+
+        const osc = globalAudioCtx.createOscillator();
+        const gain = globalAudioCtx.createGain();
 
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-        gain.gain.setValueAtTime(1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 3);
+        osc.frequency.setValueAtTime(587.33, globalAudioCtx.currentTime);
+        gain.gain.setValueAtTime(1, globalAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, globalAudioCtx.currentTime + 3);
 
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        gain.connect(globalAudioCtx.destination);
 
         osc.start();
-        osc.stop(audioCtx.currentTime + 3);
+        osc.stop(globalAudioCtx.currentTime + 3);
       } catch (e) {
         console.log("Audio play error", e);
       }
@@ -735,6 +826,9 @@
     }
 
     function startTimer() {
+      // Unlock all iOS audio restrictions during start click
+      unlockAudioForIOS();
+
       normalizeInputs();
 
       const now = new Date();
@@ -831,7 +925,7 @@
       } else {
         statusBadge.textContent = "Exam Completed";
         statusBadge.className = "status-badge status-ended";
-        
+
         if (isCountdownVisible) {
           countdownDisplay.classList.remove('invisible');
           countdownDisplay.textContent = "Time's up!";
@@ -870,4 +964,5 @@
     setInitialStartTime();
   </script>
 </body>
+
 </html>
