@@ -1,0 +1,77 @@
+.site-header {
+  background-color: rgb(0, 213, 255);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: fit-content;
+  height: 70px; /* Restored to original 70px height */
+  display: flex;
+  align-items: center;
+  padding: 0 4px; /* Tightly wraps arrow horizontally when collapsed */
+  border-bottom-right-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Toggle Arrow Button Styling */
+.toggle-btn {
+  background: none;
+  border: none;
+  color: #0052cc; /* Blue arrow */
+  font-size: 1.4rem; /* Scaled up arrow to match 70px height */
+  font-weight: bold;
+  cursor: pointer;
+  padding: 10px 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease, color 0.2s ease;
+  outline: none;
+}
+
+.toggle-btn:hover {
+  color: #0033aa;
+}
+
+/* Rotates arrow 180deg when open */
+.toggle-btn.open {
+  transform: rotate(180deg);
+}
+
+/* Expandable Container for Home / Logo */
+.nav-content {
+  display: flex;
+  align-items: center;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-width 0.4s ease, opacity 0.3s ease;
+  white-space: nowrap;
+  padding: 0;
+}
+
+/* Opened State: Expands width and adds inner padding for the logo */
+.nav-content.open {
+  max-width: 220px;
+  opacity: 1;
+  padding-left: 6px;
+  padding-right: 12px;
+}
+
+/* Restored original logo size */
+.site-header a img {
+  height: 55px; /* Restored to original logo height */
+  border: 0;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.site-header a img:hover {
+  transform: scale(1.05);
+}

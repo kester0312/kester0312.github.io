@@ -3,67 +3,111 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Exam Real-Time Clock</title>
+  <!-- Prevents user zoom and auto-scaling on iOS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Exam Timer</title>
   <style>
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      touch-action: manipulation; /* Disables double-tap to zoom on iOS/Android */
     }
 
     body {
-      background-color: #f4f6f9;
+      background-color: #ffffff;
+      color: #222222;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      padding: 20px;
-    }
-
-    /* Entire page background turns white when timer is active */
-    body.timer-active {
-      background-color: #ffffff;
-      padding: 0;
+      width: 100vw;
+      height: 100vh;
       margin: 0;
+      padding: 0;
       overflow: hidden;
     }
 
+    /* Container padding reduced to 4px (20% of original 20px) */
     .container {
       background: #ffffff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      width: 100%;
-      max-width: 480px;
-      text-align: center;
-    }
-
-    /* Active State: Card design completely removed, fills browser viewport seamlessly */
-    .container.timer-active {
-      max-width: none;
-      max-height: none;
       width: 100vw;
       height: 100vh;
-      box-shadow: none;
-      border-radius: 0;
-      background: #ffffff;
-      padding: 15px;
+      padding: 4px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
     }
 
+    .timer-layout {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .part-clock {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Increased clock size */
+    .clock-wrapper {
+      width: min(82vmin, 680px);
+      height: min(82vmin, 680px);
+      background-image: url('clock.png');
+      background-size: cover;
+      background-position: center;
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .real-clock {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Scrollable settings panel for smaller screen height */
+    .part-setup,
+    .part-info {
+      flex: 1;
+      width: 100%;
+      max-width: 420px;
+      max-height: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 12px 16px;
+      transition: max-width 0.3s ease;
+    }
+
+    /* Full screen / centered layout when clock is hidden */
+    .part-setup.full-width,
+    .part-info.full-width {
+      max-width: 580px;
+      margin: 0 auto;
+    }
+
     h1 {
       font-size: 1.5rem;
-      color: #333;
-      margin-bottom: 20px;
+      color: inherit;
+      margin-bottom: 18px;
+      text-align: left;
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       text-align: left;
     }
 
@@ -75,11 +119,12 @@
       margin-bottom: 8px;
     }
 
-    /* Custom Spinner Controls */
+    /* Compact Spinner Controls */
     .time-input-container {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      transition: opacity 0.2s;
     }
 
     .number-spinner {
@@ -89,16 +134,18 @@
       border-radius: 6px;
       overflow: hidden;
       background: #fff;
-      width: 90px;
+      width: 62px;
     }
 
     .number-spinner input[type="number"] {
-      width: 55px;
-      padding: 8px;
+      width: 38px;
+      padding: 4px 2px;
       border: none;
       outline: none;
-      font-size: 1.1rem;
+      font-size: 16px; /* Prevents iOS auto-zoom */
       text-align: center;
+      background: transparent;
+      color: inherit;
       -moz-appearance: textfield;
     }
 
@@ -111,7 +158,7 @@
     .spinner-arrows {
       display: flex;
       flex-direction: column;
-      width: 35px;
+      width: 24px;
       border-left: 1px solid #ccc;
     }
 
@@ -120,7 +167,7 @@
       border: none;
       cursor: pointer;
       font-size: 0.65rem;
-      height: 18px;
+      height: 15px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -138,14 +185,14 @@
 
     .separator {
       font-weight: bold;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       color: #555;
     }
 
     .unit-label {
       font-size: 0.85rem;
       color: #666;
-      margin-right: 8px;
+      margin-right: 6px;
     }
 
     .checkbox-group {
@@ -161,7 +208,7 @@
       align-items: center;
       gap: 8px;
       font-size: 0.9rem;
-      color: #444;
+      color: inherit;
       cursor: pointer;
       font-weight: normal;
     }
@@ -177,9 +224,8 @@
     }
 
     .test-sound-btn {
-      align-self: center;
+      align-self: flex-start;
       margin-top: 4px;
-      margin-left: 0;
       padding: 6px 14px;
       background-color: #6c757d;
       color: white;
@@ -196,10 +242,10 @@
     }
 
     .info-preview {
-      margin: 15px 0;
+      margin: 12px 0;
       font-size: 0.95rem;
-      color: #0066cc;
-      font-weight: 500;
+      color: inherit;
+      font-weight: 600;
       min-height: 1.2em;
     }
 
@@ -213,7 +259,7 @@
     button.primary-btn {
       width: 100%;
       padding: 12px;
-      background-color: #0066cc;
+      background-color: #222222;
       color: white;
       border: none;
       border-radius: 6px;
@@ -224,66 +270,12 @@
     }
 
     button.primary-btn:hover {
-      background-color: #0052a3;
-    }
-
-    /* Active Timer Panel Layout */
-    #timerPanel {
-      display: none;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Layout direction strictly handled by JavaScript via Web Size (innerWidth vs innerHeight) */
-    .timer-layout {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-evenly;
-      width: 100%;
-      height: 100%;
-      gap: 15px;
-    }
-
-    /* Part 1: Maximized Clock Container */
-    .part-clock {
-      flex: 1;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .clock-wrapper {
-      /* Scales fluidly using web viewport units (vmin) */
-      width: min(65vmin, 520px);
-      height: min(65vmin, 520px);
-      background-image: url('clock.png');
-      background-size: cover;
-      background-position: center;
-      border-radius: 50%;
-      position: relative;
-    }
-
-    .real-clock {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Part 2: Info & Controls - Text Max-Width Constraint */
-    .part-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      max-width: 380px;
+      background-color: #444444;
     }
 
     .status-badge-container {
       margin-bottom: 12px;
+      text-align: center;
     }
 
     .status-badge {
@@ -312,8 +304,9 @@
     .time-range {
       font-size: 1.15rem;
       font-weight: 600;
-      color: #444;
+      color: inherit;
       margin-bottom: 8px;
+      text-align: center;
     }
 
     .real-time-container {
@@ -328,7 +321,7 @@
       font-size: 2.8rem;
       font-weight: 700;
       letter-spacing: 2px;
-      color: #222;
+      color: inherit;
     }
 
     .countdown-container {
@@ -359,176 +352,294 @@
       padding-top: 12px;
       width: 100%;
     }
+
+    /* Dark Mode Support */
+    @media (prefers-color-scheme: dark) {
+      body, .container {
+        background-color: #000000;
+        color: #ffffff;
+      }
+
+      label, .separator, .unit-label {
+        color: #aaaaaa;
+      }
+
+      .number-spinner {
+        background: #1e1e1e;
+        border-color: #444444;
+      }
+
+      .spinner-arrows {
+        border-left-color: #444444;
+      }
+
+      .spin-btn {
+        background: #2a2a2a;
+        color: #ffffff;
+      }
+
+      .spin-btn:first-child {
+        border-bottom-color: #444444;
+      }
+
+      .spin-btn:hover {
+        background: #3a3a3a;
+      }
+
+      button.primary-btn {
+        background-color: #ffffff;
+        color: #000000;
+      }
+
+      button.primary-btn:hover {
+        background-color: #dddddd;
+      }
+
+      .timer-controls {
+        border-top-color: #333333;
+      }
+
+      /* Kept center post dark in dark mode */
+      .clock-center-dot {
+        fill: #222222 !important;
+      }
+    }
   </style>
 </head>
 
 <body>
 
+    <script src="\code/js/header_TopLeft.js"></script>
+
   <div class="container" id="mainContainer">
-    <h1 id="mainHeader">Exam Real-Time Clock</h1>
-
-    <!-- Input Setup Section -->
-    <div id="setupPanel">
-      <div class="form-group">
-        <label>Exam Start Time (24-Hour Clock)</label>
-        <div class="time-input-container">
-          <div class="number-spinner">
-            <input type="number" id="startHours" min="0" max="23" placeholder="HH">
-            <div class="spinner-arrows">
-              <button type="button" class="spin-btn" onclick="adjustValue('startHours', 1)">▲</button>
-              <button type="button" class="spin-btn" onclick="adjustValue('startHours', -1)">▼</button>
-            </div>
-          </div>
-          <span class="separator">:</span>
-          <div class="number-spinner">
-            <input type="number" id="startMinutes" min="0" max="59" placeholder="MM">
-            <div class="spinner-arrows">
-              <button type="button" class="spin-btn" onclick="adjustValue('startMinutes', 1)">▲</button>
-              <button type="button" class="spin-btn" onclick="adjustValue('startMinutes', -1)">▼</button>
-            </div>
-          </div>
-          <span class="separator">:</span>
-          <!-- Seconds Spinner Defaults to 00 with arrow toggling -->
-          <div class="number-spinner">
-            <input type="number" id="startSeconds" value="00" readonly>
-            <div class="spinner-arrows">
-              <button type="button" class="spin-btn" onclick="toggleHalfMinute()">▲</button>
-              <button type="button" class="spin-btn" onclick="toggleHalfMinute()">▼</button>
-            </div>
-          </div>
-        </div>
-        <div class="error-msg" id="timeError">Start time cannot be earlier than or equal to the current time. Please
-          select a future time.</div>
-      </div>
-
-      <div class="form-group">
-        <label>Exam Duration</label>
-        <div class="time-input-container">
-          <div class="number-spinner">
-            <input type="number" id="durationHours" min="0" value="0" placeholder="HH">
-            <div class="spinner-arrows">
-              <button type="button" class="spin-btn" onclick="adjustValue('durationHours', 1)">▲</button>
-              <button type="button" class="spin-btn" onclick="adjustValue('durationHours', -1)">▼</button>
-            </div>
-          </div>
-          <span class="unit-label">hr</span>
-
-          <div class="number-spinner">
-            <input type="number" id="durationMinutes" min="0" value="34" placeholder="MM">
-            <div class="spinner-arrows">
-              <button type="button" class="spin-btn" onclick="adjustValue('durationMinutes', 1)">▲</button>
-              <button type="button" class="spin-btn" onclick="adjustValue('durationMinutes', -1)">▼</button>
-            </div>
-          </div>
-          <span class="unit-label">min</span>
+    <div class="timer-layout" id="timerLayout">
+      <!-- Left Half: Maximized Analog Clock -->
+      <div class="part-clock" id="partClock">
+        <div class="clock-wrapper">
+          <svg class="real-clock" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="47" fill="none" stroke="none" />
+            <line id="hourHand" x1="50" y1="50" x2="50" y2="28" stroke="#222" stroke-width="4" stroke-linecap="round" />
+            <line id="minuteHand" x1="50" y1="50" x2="50" y2="18" stroke="#0066cc" stroke-width="3" stroke-linecap="round" />
+            <line id="secondHand" x1="50" y1="50" x2="50" y2="12" stroke="#d9534f" stroke-width="1.5" />
+            <circle class="clock-center-dot" cx="50" cy="50" r="3.5" fill="#222" />
+          </svg>
         </div>
       </div>
 
-      <div class="checkbox-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="setupRealTime" checked>
-          Show digital real-time clock (HH:MM:SS)
-        </label>
-        <label class="checkbox-label">
-          <input type="checkbox" id="setupCountdown">
-          Show remaining time countdown
-        </label>
-        <label class="checkbox-label" id="fifteenMinLabel">
-          <input type="checkbox" id="announce15Min">
-          15 mins left announce
-        </label>
-        <button type="button" class="test-sound-btn" onclick="testSound()">Test Sound</button>
-      </div>
+      <!-- Right Half: Input Setup Panel -->
+      <div id="setupPanel" class="part-setup">
+        <h1>Exam Timer</h1>
 
-      <div class="info-preview" id="schedulePreview">Exam Period: --:-- - --:--</div>
+        <div class="form-group">
+          <label class="checkbox-label" style="margin-bottom: 10px; font-weight: 600;">
+            <input type="checkbox" id="startAtExactTime" checked>
+            Start at exact time
+          </label>
 
-      <button id="startBtn" class="primary-btn">Start Exam Clock</button>
-    </div>
+          <!-- Displayed when Start at exact time IS TICKED -->
+          <div id="exactTimeBlock">
+            <label>Exam Start Time (24-Hour Clock)</label>
+            <div class="time-input-container">
+              <div class="number-spinner">
+                <input type="number" id="startHours" min="0" max="23" placeholder="HH">
+                <div class="spinner-arrows">
+                  <button type="button" class="spin-btn" onclick="adjustValue('startHours', 1)">▲</button>
+                  <button type="button" class="spin-btn" onclick="adjustValue('startHours', -1)">▼</button>
+                </div>
+              </div>
+              <span class="separator">:</span>
+              <div class="number-spinner">
+                <input type="number" id="startMinutes" min="0" max="59" placeholder="MM">
+                <div class="spinner-arrows">
+                  <button type="button" class="spin-btn" onclick="adjustValue('startMinutes', 1)">▲</button>
+                  <button type="button" class="spin-btn" onclick="adjustValue('startMinutes', -1)">▼</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
-    <!-- Active Timer Display Section -->
-    <div id="timerPanel">
-      <div class="timer-layout" id="timerLayout">
-        <!-- Part 1: Maximized Clock -->
-        <div class="part-clock">
-          <div class="clock-wrapper">
-            <svg class="real-clock" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="47" fill="none" stroke="none" />
-              <line id="hourHand" x1="50" y1="50" x2="50" y2="28" stroke="#222" stroke-width="4"
-                stroke-linecap="round" />
-              <line id="minuteHand" x1="50" y1="50" x2="50" y2="18" stroke="#0066cc" stroke-width="3"
-                stroke-linecap="round" />
-              <line id="secondHand" x1="50" y1="50" x2="50" y2="12" stroke="#d9534f" stroke-width="1.5" />
-              <circle cx="50" cy="50" r="3.5" fill="#222" />
-            </svg>
+          <!-- Displayed when Start at exact time IS UNTICKED -->
+          <div id="delayTimeBlock" style="display: none;">
+            <label>Start Delay</label>
+            <div class="time-input-container">
+              <div class="number-spinner">
+                <input type="number" id="delayHours" min="0" value="0" placeholder="HH">
+                <div class="spinner-arrows">
+                  <button type="button" class="spin-btn" onclick="adjustValue('delayHours', 1)">▲</button>
+                  <button type="button" class="spin-btn" onclick="adjustValue('delayHours', -1)">▼</button>
+                </div>
+              </div>
+              <span class="unit-label">hr</span>
+
+              <div class="number-spinner">
+                <input type="number" id="delayMinutes" min="0" value="0" placeholder="MM">
+                <div class="spinner-arrows">
+                  <button type="button" class="spin-btn" onclick="adjustValue('delayMinutes', 1)">▲</button>
+                  <button type="button" class="spin-btn" onclick="adjustValue('delayMinutes', -1)">▼</button>
+                </div>
+              </div>
+              <span class="unit-label">min</span>
+
+              <div class="number-spinner">
+                <input type="number" id="delaySeconds" min="0" value="0" placeholder="SS">
+                <div class="spinner-arrows">
+                  <button type="button" class="spin-btn" onclick="adjustValue('delaySeconds', 1)">▲</button>
+                  <button type="button" class="spin-btn" onclick="adjustValue('delaySeconds', -1)">▼</button>
+                </div>
+              </div>
+              <span class="unit-label">sec</span>
+            </div>
+          </div>
+
+          <div class="error-msg" id="timeError">Start time cannot be earlier than or equal to current time.</div>
+        </div>
+
+        <!-- Default Exam Duration: 105 minutes (1 hr 45 min) -->
+        <div class="form-group">
+          <label>Exam Duration</label>
+          <div class="time-input-container">
+            <div class="number-spinner">
+              <input type="number" id="durationHours" min="0" value="1" placeholder="HH">
+              <div class="spinner-arrows">
+                <button type="button" class="spin-btn" onclick="adjustValue('durationHours', 1)">▲</button>
+                <button type="button" class="spin-btn" onclick="adjustValue('durationHours', -1)">▼</button>
+              </div>
+            </div>
+            <span class="unit-label">hr</span>
+
+            <div class="number-spinner">
+              <input type="number" id="durationMinutes" min="0" value="45" placeholder="MM">
+              <div class="spinner-arrows">
+                <button type="button" class="spin-btn" onclick="adjustValue('durationMinutes', 1)">▲</button>
+                <button type="button" class="spin-btn" onclick="adjustValue('durationMinutes', -1)">▼</button>
+              </div>
+            </div>
+            <span class="unit-label">min</span>
+
+            <div class="number-spinner">
+              <input type="number" id="durationSeconds" min="0" value="0" placeholder="SS">
+              <div class="spinner-arrows">
+                <button type="button" class="spin-btn" onclick="adjustValue('durationSeconds', 1)">▲</button>
+                <button type="button" class="spin-btn" onclick="adjustValue('durationSeconds', -1)">▼</button>
+              </div>
+            </div>
+            <span class="unit-label">sec</span>
           </div>
         </div>
 
-        <!-- Part 2: Info & Controls -->
-        <div class="part-info">
-          <!-- Status badge -->
-          <div class="status-badge-container">
-            <div id="statusBadge" class="status-badge status-waiting">Waiting to start</div>
-          </div>
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="setupShowClock" checked>
+            Show Clock
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="setupStartStopAnnounce" checked>
+            Start/Stop announce
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="setupRealTime">
+            Show digital real-time clock (HH:MM:SS)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="setupCountdown">
+            Show remaining time countdown
+          </label>
+          <label class="checkbox-label" id="fifteenMinLabel">
+            <input type="checkbox" id="announce15Min" checked>
+            15 mins left announce
+          </label>
+          <button type="button" class="test-sound-btn" onclick="testSound()">Test Sound</button>
+        </div>
 
-          <!-- Exam Period text -->
-          <div class="time-range" id="examTimeRange">Exam Period: --:-- - --:--</div>
+        <div class="info-preview" id="schedulePreview">Exam Period: --:-- - --:--</div>
 
-          <!-- Real-time XX:XX:XX -->
-          <div class="real-time-container">
-            <div class="real-time" id="realTimeDisplay">00:00:00</div>
-          </div>
+        <button id="startBtn" class="primary-btn">Start</button>
+      </div>
 
-          <!-- Countdown display -->
-          <div class="countdown-container">
-            <div class="countdown-display" id="countdownDisplay"></div>
-          </div>
+      <!-- Right Half: Active Timer Information Panel -->
+      <div id="activeInfoPanel" class="part-info" style="display: none;">
+        <div class="status-badge-container">
+          <div id="statusBadge" class="status-badge status-waiting">Waiting to start</div>
+        </div>
 
-          <!-- Active Timer Controls -->
-          <div class="timer-controls">
-            <label class="checkbox-label">
-              <input type="checkbox" id="timerRealTime" checked>
-              Show real-time (HH:MM:SS)
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" id="timerCountdown">
-              Show remaining time countdown
-            </label>
-            <label class="checkbox-label" id="timerFifteenMinLabel">
-              <input type="checkbox" id="timerAnnounce15Min">
-              15 mins left announce
-            </label>
-            <button type="button" class="test-sound-btn" onclick="testSound()">Test Sound</button>
-          </div>
+        <div class="time-range" id="examTimeRange">Exam Period: --:-- - --:--</div>
+
+        <div class="real-time-container">
+          <div class="real-time" id="realTimeDisplay">00:00:00</div>
+        </div>
+
+        <div class="countdown-container">
+          <div class="countdown-display" id="countdownDisplay"></div>
+        </div>
+
+        <div class="timer-controls">
+          <label class="checkbox-label">
+            <input type="checkbox" id="timerShowClock" checked>
+            Show Clock
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="timerStartStopAnnounce" checked>
+            Start/Stop announce
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="timerRealTime">
+            Show real-time (HH:MM:SS)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="timerCountdown">
+            Show remaining time countdown
+          </label>
+          <label class="checkbox-label" id="timerFifteenMinLabel">
+            <input type="checkbox" id="timerAnnounce15Min">
+            15 mins left announce
+          </label>
+          <button type="button" class="test-sound-btn" onclick="testSound()">Test Sound</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
+    // Prevent gesture zoom on iOS devices
+    document.addEventListener('gesturestart', function (e) {
+      e.preventDefault();
+    });
+
     // Elements
-    const mainContainer = document.getElementById('mainContainer');
-    const mainHeader = document.getElementById('mainHeader');
+    const partClock = document.getElementById('partClock');
     const setupPanel = document.getElementById('setupPanel');
-    const timerPanel = document.getElementById('timerPanel');
+    const activeInfoPanel = document.getElementById('activeInfoPanel');
     const timerLayout = document.getElementById('timerLayout');
+
+    const startAtExactTime = document.getElementById('startAtExactTime');
+    const exactTimeBlock = document.getElementById('exactTimeBlock');
+    const delayTimeBlock = document.getElementById('delayTimeBlock');
 
     const startHoursInput = document.getElementById('startHours');
     const startMinutesInput = document.getElementById('startMinutes');
-    const startSecondsInput = document.getElementById('startSeconds');
+
+    const delayHoursInput = document.getElementById('delayHours');
+    const delayMinutesInput = document.getElementById('delayMinutes');
+    const delaySecondsInput = document.getElementById('delaySeconds');
 
     const durationHoursInput = document.getElementById('durationHours');
     const durationMinutesInput = document.getElementById('durationMinutes');
+    const durationSecondsInput = document.getElementById('durationSeconds');
 
     const schedulePreview = document.getElementById('schedulePreview');
     const timeError = document.getElementById('timeError');
     const startBtn = document.getElementById('startBtn');
 
     // Checkboxes
+    const setupShowClock = document.getElementById('setupShowClock');
+    const setupStartStopAnnounce = document.getElementById('setupStartStopAnnounce');
     const setupRealTime = document.getElementById('setupRealTime');
     const setupCountdown = document.getElementById('setupCountdown');
     const announce15Min = document.getElementById('announce15Min');
     const fifteenMinLabel = document.getElementById('fifteenMinLabel');
 
+    const timerShowClock = document.getElementById('timerShowClock');
+    const timerStartStopAnnounce = document.getElementById('timerStartStopAnnounce');
     const timerRealTime = document.getElementById('timerRealTime');
     const timerCountdown = document.getElementById('timerCountdown');
     const timerAnnounce15Min = document.getElementById('timerAnnounce15Min');
@@ -547,18 +658,16 @@
 
     let examStart = null;
     let examEnd = null;
-    let timerInterval = null;
     let bellRung = false;
     let startAnnounced = false;
     let announcement15Triggered = false;
     let announcement5Triggered = false;
 
-    // iOS Web Audio Context & Audio Preloading Management
+    // iOS Web Audio Context & Preloading
     let globalAudioCtx = null;
     const audioCache = {};
 
     function unlockAudioForIOS() {
-      // 1. Initialize and resume Web Audio Context on user click
       if (!globalAudioCtx) {
         globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
@@ -566,19 +675,17 @@
         globalAudioCtx.resume();
       }
 
-      // 2. Prime SpeechSynthesis engine on iOS with silent utterance
       if ('speechSynthesis' in window) {
         const silentSpeech = new SpeechSynthesisUtterance('');
         silentSpeech.volume = 0;
         window.speechSynthesis.speak(silentSpeech);
       }
 
-      // 3. Preload and prime HTML5 Audio elements silently
       const files = ['15_mins_left.mp3', '5_mins_left.mp3'];
       files.forEach(filename => {
         if (!audioCache[filename]) {
           const audio = new Audio(filename);
-          audio.muted = true; // Mute to guarantee silence during unlock
+          audio.muted = true;
           audio.load();
           audio.play().then(() => {
             audio.pause();
@@ -589,21 +696,14 @@
       });
     }
 
-    // Function to test audio output by speaking "Test"
     function testSound() {
       speakText("Test");
     }
 
-    /**
-     * Web Size Layout Detector
-     * Uses window.innerWidth and window.innerHeight from index.html
-     */
     function updateClockPosition() {
       const webWidth = window.innerWidth;
       const webHeight = window.innerHeight;
 
-      // Web Width > Web Height => Clock Left (row)
-      // Web Width <= Web Height => Clock Up (column)
       if (webWidth > webHeight) {
         timerLayout.style.flexDirection = 'row';
       } else {
@@ -611,26 +711,50 @@
       }
     }
 
-    // Web Size Event Listeners (Matching index.html implementation)
+    function toggleShowClock() {
+      const isVisible = setupShowClock.checked;
+      if (isVisible) {
+        partClock.style.display = 'flex';
+        setupPanel.classList.remove('full-width');
+        activeInfoPanel.classList.remove('full-width');
+      } else {
+        partClock.style.display = 'none';
+        setupPanel.classList.add('full-width');
+        activeInfoPanel.classList.add('full-width');
+      }
+    }
+
     window.addEventListener('load', updateClockPosition);
     window.addEventListener('resize', updateClockPosition);
 
-    // Sync Checkboxes between Setup and Timer controls
+    // Sync Checkboxes
+    setupShowClock.addEventListener('change', () => { timerShowClock.checked = setupShowClock.checked; toggleShowClock(); });
+    setupStartStopAnnounce.addEventListener('change', () => { timerStartStopAnnounce.checked = setupStartStopAnnounce.checked; });
     setupRealTime.addEventListener('change', () => { timerRealTime.checked = setupRealTime.checked; });
     setupCountdown.addEventListener('change', () => { timerCountdown.checked = setupCountdown.checked; });
     announce15Min.addEventListener('change', () => { timerAnnounce15Min.checked = announce15Min.checked; });
 
+    timerShowClock.addEventListener('change', () => { setupShowClock.checked = timerShowClock.checked; toggleShowClock(); });
+    timerStartStopAnnounce.addEventListener('change', () => { setupStartStopAnnounce.checked = timerStartStopAnnounce.checked; });
     timerRealTime.addEventListener('change', () => { setupRealTime.checked = timerRealTime.checked; tick(); });
     timerCountdown.addEventListener('change', () => { setupCountdown.checked = timerCountdown.checked; tick(); });
     timerAnnounce15Min.addEventListener('change', () => { announce15Min.checked = timerAnnounce15Min.checked; });
 
-    // Toggle 00 or 30 seconds
-    function toggleHalfMinute() {
-      startSecondsInput.value = startSecondsInput.value === "00" ? "30" : "00";
+    // Handle "Start at exact time" checkbox state
+    function toggleStartExactUI() {
+      const isExact = startAtExactTime.checked;
+      if (isExact) {
+        exactTimeBlock.style.display = 'block';
+        delayTimeBlock.style.display = 'none';
+      } else {
+        exactTimeBlock.style.display = 'none';
+        delayTimeBlock.style.display = 'block';
+      }
       updatePreview();
     }
 
-    // Adjust values via arrow buttons
+    startAtExactTime.addEventListener('change', toggleStartExactUI);
+
     function adjustValue(inputId, delta) {
       const input = document.getElementById(inputId);
       let val = (parseInt(input.value, 10) || 0) + delta;
@@ -638,38 +762,69 @@
       normalizeInputs();
     }
 
-    // Auto Normalization
     function normalizeInputs() {
       let sH = parseInt(startHoursInput.value, 10) || 0;
       let sM = parseInt(startMinutesInput.value, 10) || 0;
+
+      let delH = parseInt(delayHoursInput.value, 10) || 0;
+      let delM = parseInt(delayMinutesInput.value, 10) || 0;
+      let delS = parseInt(delaySecondsInput.value, 10) || 0;
+
       let dH = parseInt(durationHoursInput.value, 10) || 0;
       let dM = parseInt(durationMinutesInput.value, 10) || 0;
+      let dS = parseInt(durationSecondsInput.value, 10) || 0;
 
+      // Start Time Normalization
       if (sM >= 60) {
         sH += Math.floor(sM / 60);
         sM = sM % 60;
       } else if (sM < 0) {
         sM = 0;
       }
-
       sH = ((sH % 24) + 24) % 24;
 
+      // Start Delay Normalization
+      if (delS >= 60) {
+        delM += Math.floor(delS / 60);
+        delS = delS % 60;
+      } else if (delS < 0) {
+        delS = 0;
+      }
+      if (delM >= 60) {
+        delH += Math.floor(delM / 60);
+        delM = delM % 60;
+      } else if (delM < 0) {
+        delM = 0;
+      }
+      if (delH < 0) delH = 0;
+
+      // Duration Normalization
+      if (dS >= 60) {
+        dM += Math.floor(dS / 60);
+        dS = dS % 60;
+      } else if (dS < 0) {
+        dS = 0;
+      }
       if (dM >= 60) {
         dH += Math.floor(dM / 60);
         dM = dM % 60;
       } else if (dM < 0) {
         dM = 0;
       }
-
       if (dH < 0) dH = 0;
 
       startHoursInput.value = String(sH).padStart(2, '0');
       startMinutesInput.value = String(sM).padStart(2, '0');
+
+      delayHoursInput.value = String(delH);
+      delayMinutesInput.value = String(delM).padStart(2, '0');
+      delaySecondsInput.value = String(delS).padStart(2, '0');
+
       durationHoursInput.value = String(dH);
       durationMinutesInput.value = String(dM).padStart(2, '0');
+      durationSecondsInput.value = String(dS).padStart(2, '0');
 
-      // Check duration rule for 15 mins left announce (>= 16 mins required)
-      const totalMins = (dH * 60) + dM;
+      const totalMins = (dH * 60) + dM + (dS / 60);
       if (totalMins < 16) {
         announce15Min.checked = false;
         announce15Min.disabled = true;
@@ -694,7 +849,6 @@
       now.setMinutes(now.getMinutes() + 1);
       startHoursInput.value = String(now.getHours()).padStart(2, '0');
       startMinutesInput.value = String(now.getMinutes()).padStart(2, '0');
-      startSecondsInput.value = "00";
       normalizeInputs();
     }
 
@@ -709,36 +863,49 @@
       return s > 0 ? `${h}:${m}:${String(s).padStart(2, '0')}` : `${h}:${m}`;
     }
 
-    // Convert Date object to spoken words
-    function timeToSpokenWords(date) {
+    function numberToWords(n) {
+      const ones = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+        "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+      const tens = ["", "", "twenty", "thirty", "forty", "fifty"];
+
+      if (n < 20) return ones[n];
+      const t = Math.floor(n / 10);
+      const o = n % 10;
+      return tens[t] + (o > 0 ? " " + ones[o] : "");
+    }
+
+    function timeToSpokenWords24(date) {
       const hours = date.getHours();
       const minutes = date.getMinutes();
       const seconds = date.getSeconds();
 
-      const hourNames = ["Twelve", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven"];
-      const hourStr = hourNames[hours % 12];
+      const hourStr = numberToWords(hours);
+      let minStr = "";
+      let secStr = "";
 
-      const tens = ["", "", "twenty", "thirty", "forty", "fifty"];
-      const ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
-        "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
-
-      let minuteStr = "";
-      if (minutes === 0) {
-        minuteStr = "o'clock";
-      } else if (minutes < 20) {
-        minuteStr = (minutes < 10 ? "oh " : "") + ones[minutes];
-      } else {
-        const t = Math.floor(minutes / 10);
-        const o = minutes % 10;
-        minuteStr = tens[t] + (o > 0 ? " " + ones[o] : "");
+      if (minutes === 0 && seconds === 0) {
+        return `${hourStr} o'clock`;
       }
 
-      const secondStr = seconds === 30 ? " thirty" : "";
+      if (minutes === 0 && seconds !== 0) {
+        minStr = "zero";
+      } else if (minutes < 10) {
+        minStr = "oh " + numberToWords(minutes);
+      } else {
+        minStr = numberToWords(minutes);
+      }
 
-      return `${hourStr} ${minuteStr}${secondStr}`.trim();
+      if (seconds !== 0) {
+        if (seconds < 10) {
+          secStr = " oh " + numberToWords(seconds);
+        } else {
+          secStr = " " + numberToWords(seconds);
+        }
+      }
+
+      return `${hourStr} ${minStr}${secStr}`.trim();
     }
 
-    // Speech Synthesis helper
     function speakText(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -749,7 +916,6 @@
       }
     }
 
-    // Audio File Player helper (Uses cached primed elements)
     function playAudioFile(filename) {
       if (audioCache[filename]) {
         audioCache[filename].muted = false;
@@ -758,30 +924,49 @@
         audioCache[filename].play().catch(e => console.log("Audio play blocked:", filename, e));
       } else {
         const audio = new Audio(filename);
-        audio.play().catch(e => console.log("Audio file play blocked or not found:", filename, e));
+        audio.play().catch(e => console.log("Audio play blocked:", filename, e));
       }
     }
 
+    // Calculates exact exam dates; incorporates exact millisecond precision
     function getExamDates() {
-      const sH = parseInt(startHoursInput.value, 10) || 0;
-      const sM = parseInt(startMinutesInput.value, 10) || 0;
-      const sS = parseInt(startSecondsInput.value, 10) || 0;
       const dH = parseInt(durationHoursInput.value, 10) || 0;
       const dM = parseInt(durationMinutesInput.value, 10) || 0;
+      const dS = parseInt(durationSecondsInput.value, 10) || 0;
+      const totalDurationMs = ((dH * 3600) + (dM * 60) + dS) * 1000;
 
-      const totalDurationMins = (dH * 60) + dM;
+      let start = new Date();
 
-      const start = new Date();
-      start.setHours(sH, sM, sS, 0);
+      if (startAtExactTime.checked) {
+        const sH = parseInt(startHoursInput.value, 10) || 0;
+        const sM = parseInt(startMinutesInput.value, 10) || 0;
+        start.setHours(sH, sM, 0, 0);
+      } else {
+        const now = new Date();
+        const nextSecondBoundaryMs = Math.ceil(now.getTime() / 1000) * 1000;
 
-      const end = new Date(start.getTime() + totalDurationMins * 60000);
+        const delH = parseInt(delayHoursInput.value, 10) || 0;
+        const delM = parseInt(delayMinutesInput.value, 10) || 0;
+        const delS = parseInt(delaySecondsInput.value, 10) || 0;
+        const totalDelayMs = ((delH * 3600) + (delM * 60) + delS) * 1000;
 
+        start = new Date(nextSecondBoundaryMs + totalDelayMs);
+      }
+
+      const end = new Date(start.getTime() + totalDurationMs);
       return { start, end };
     }
 
     function updatePreview() {
-      const { start, end } = getExamDates();
-      schedulePreview.textContent = `Exam Period: ${formatShortTime(start)} - ${formatShortTime(end)}`;
+      if (startAtExactTime.checked) {
+        const { start, end } = getExamDates();
+        schedulePreview.textContent = `Exam Period: ${formatShortTime(start)} - ${formatShortTime(end)}`;
+      } else {
+        const delH = String(parseInt(delayHoursInput.value, 10) || 0).padStart(2, '0');
+        const delM = String(parseInt(delayMinutesInput.value, 10) || 0).padStart(2, '0');
+        const delS = String(parseInt(delaySecondsInput.value, 10) || 0).padStart(2, '0');
+        schedulePreview.textContent = `Exam Period: Start after ${delH}:${delM}:${delS}`;
+      }
     }
 
     function ringBell() {
@@ -807,18 +992,19 @@
         osc.start();
         osc.stop(globalAudioCtx.currentTime + 3);
       } catch (e) {
-        console.log("Audio play error", e);
+        console.log("Audio error", e);
       }
     }
 
+    // 1000ms discrete tick rendering
     function updateAnalogClock(now) {
       const seconds = now.getSeconds();
-      const minutes = now.getMinutes();
-      const hours = now.getHours();
+      const minutes = now.getMinutes() + seconds / 60;
+      const hours = (now.getHours() % 12) + minutes / 60;
 
       const secDeg = seconds * 6;
-      const minDeg = (minutes + seconds / 60) * 6;
-      const hourDeg = ((hours % 12) + minutes / 60) * 30;
+      const minDeg = minutes * 6;
+      const hourDeg = hours * 30;
 
       secondHand.setAttribute('transform', `rotate(${secDeg}, 50, 50)`);
       minuteHand.setAttribute('transform', `rotate(${minDeg}, 50, 50)`);
@@ -826,15 +1012,13 @@
     }
 
     function startTimer() {
-      // Unlock all iOS audio restrictions during start click
       unlockAudioForIOS();
-
       normalizeInputs();
 
       const now = new Date();
       const { start, end } = getExamDates();
 
-      if (start <= now) {
+      if (startAtExactTime.checked && start <= now) {
         timeError.style.display = 'block';
         return;
       }
@@ -848,26 +1032,17 @@
       announcement5Triggered = false;
 
       setupPanel.style.display = 'none';
-      mainHeader.style.display = 'none';
-      timerPanel.style.display = 'block';
-
-      // Remove card wrapper completely and set pure white full screen
-      document.body.classList.add('timer-active');
-      mainContainer.classList.add('timer-active');
-
-      // Update layout orientation based on current Web Size
-      updateClockPosition();
+      activeInfoPanel.style.display = 'flex';
 
       examTimeRange.textContent = `Exam Period: ${formatShortTime(examStart)} - ${formatShortTime(examEnd)}`;
-
       tick();
-      timerInterval = setInterval(tick, 1000);
     }
 
     function tick() {
       const now = new Date();
-
       updateAnalogClock(now);
+
+      if (!examStart) return;
 
       if (timerRealTime.checked) {
         realTimeDisplay.classList.remove('invisible');
@@ -877,6 +1052,7 @@
       }
 
       const isCountdownVisible = timerCountdown.checked;
+      const isAnnounceEnabled = timerStartStopAnnounce.checked;
 
       if (now < examStart) {
         statusBadge.textContent = "Waiting to start";
@@ -892,25 +1068,26 @@
         statusBadge.textContent = "Exam in progress";
         statusBadge.className = "status-badge status-running";
 
-        // Speak Start Announcement ONCE when exam begins
         if (!startAnnounced) {
           startAnnounced = true;
-          const nowSpoken = timeToSpokenWords(examStart);
-          const finishSpoken = timeToSpokenWords(examEnd);
-          const startMessage = `The time now is ${nowSpoken}, the finishing time is ${finishSpoken}, you may start now.`;
-          speakText(startMessage);
+          if (isAnnounceEnabled) {
+            const nowSpoken = timeToSpokenWords24(examStart);
+            const finishSpoken = timeToSpokenWords24(examEnd);
+            const startMessage = `The time now is ${nowSpoken}, the finishing time is ${finishSpoken}, you may start now.`;
+            speakText(startMessage);
+          } else {
+            ringBell();
+          }
         }
 
         const remainingMs = examEnd - now;
         const remainingSeconds = Math.floor(remainingMs / 1000);
 
-        // Check 15 mins left announce (Only play if ticked)
         if (timerAnnounce15Min.checked && !announcement15Triggered && remainingSeconds <= 900 && remainingSeconds > 895) {
           announcement15Triggered = true;
           playAudioFile('15_mins_left.mp3');
         }
 
-        // Check 5 mins left announce (Only play if ticked)
         if (timerAnnounce15Min.checked && !announcement5Triggered && remainingSeconds <= 300 && remainingSeconds > 295) {
           announcement5Triggered = true;
           playAudioFile('5_mins_left.mp3');
@@ -933,11 +1110,13 @@
           countdownDisplay.classList.add('invisible');
         }
 
-        // Ring Bell ONCE and Speak End Announcement
         if (!bellRung) {
-          ringBell();
-          const endMessage = "Time is up, stop working, put down all your stationery.";
-          speakText(endMessage);
+          if (isAnnounceEnabled) {
+            const endMessage = "Time is up, stop working, put down all your stationery.";
+            speakText(endMessage);
+          } else {
+            ringBell();
+          }
           bellRung = true;
         }
       }
@@ -952,7 +1131,11 @@
     }
 
     // Input listeners
-    [startHoursInput, startMinutesInput, durationHoursInput, durationMinutesInput].forEach(input => {
+    [
+      startHoursInput, startMinutesInput,
+      delayHoursInput, delayMinutesInput, delaySecondsInput,
+      durationHoursInput, durationMinutesInput, durationSecondsInput
+    ].forEach(input => {
       input.addEventListener('change', normalizeInputs);
       input.addEventListener('blur', normalizeInputs);
       input.addEventListener('input', updatePreview);
@@ -962,6 +1145,18 @@
 
     // Initial setup
     setInitialStartTime();
+    toggleStartExactUI();
+    toggleShowClock();
+
+    // Millisecond-synchronized 1000ms interval loop for exact time accuracy
+    function scheduleAccurateTick() {
+      tick();
+      const now = new Date();
+      const delay = 1000 - now.getMilliseconds();
+      setTimeout(scheduleAccurateTick, delay);
+    }
+
+    scheduleAccurateTick();
   </script>
 </body>
 
